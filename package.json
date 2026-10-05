@@ -1,0 +1,10 @@
+{
+  "name":"nexus-foundation",
+  "version":"0.1.0",
+  "private":false,
+  "description":"Neutral public reference infrastructure for explicit system composition and relationship lifecycles.",
+  "type":"module",
+  "engines":{"node":">=24"},
+  "scripts":{"test":"node --test","check":"npm test"},
+  "license":"Apache-2.0"
+}
