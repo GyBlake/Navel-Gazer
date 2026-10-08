@@ -146,7 +146,7 @@ export async function createLocalAppServer({
         response.setHeader('allow','GET, POST, PATCH, DELETE');
         return sendJson(response,405,{error:'Method not allowed'});
       }
-      if (method !== 'GET' && request.headers['content-type']?.split(';')[0] !== 'application/json') {
+      if ((method === 'POST' || method === 'PATCH' || (method === 'DELETE' && Number(request.headers['content-length'] ?? 0) > 0)) && request.headers['content-type']?.split(';')[0] !== 'application/json') {
         return sendJson(response,415,{error:'Content-Type must be application/json'});
       }
       try {
