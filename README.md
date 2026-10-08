@@ -1,40 +1,50 @@
-# Nexus Foundation
+# Navel Gazer
 
-Nexus Foundation is a neutral public reference implementation for explicit system composition, lifecycle control, resources, interfaces, relationships, evidence, provenance, authorization, execution, synchronization, persistence, and extensions.
+Navel Gazer is an open project developing a private, local-first personal AI assistant backed by a neutral, governed runtime. The goal is practical capability with user-controlled memory, explicit permissions, evidence-aware execution, and local operation by default.
 
-The public model is domain-neutral. It does not contain personal applications, private ontology, personal data, private vocabulary, secrets, or private system configuration.
+**Product status:** in development. The repository currently provides runtime primitives and local agent interfaces. The full desktop assistant is not yet released.
 
-## Design evidence
+## Project principles
 
-1. Function: what a component does.
-2. Sequence: what must happen before what.
-3. Interface: what a component accepts and exposes.
-4. Hardware: the physical or operating-system mechanism grounding the function.
+- **Local first:** prefer inference and storage on the user's device.
+- **User-controlled memory:** make saved information inspectable, editable, exportable, and deletable.
+- **Governed actions:** model output is not authority; tool execution must pass explicit capability and authorization checks.
+- **Evidence and provenance:** distinguish observations from assumptions and preserve lineage for governed operations.
+- **Failure containment:** model or connector failures should not silently compromise unrelated resources.
+- **Public benefit:** explore responsible applications that improve human well-being and planetary conditions, measuring outcomes rather than assuming benefit.
 
-## Core architecture
+## Current foundation
+
+The runtime provides explicit system composition, lifecycle control, resources, interfaces, relationships, evidence, provenance, authorization, execution, synchronization, persistence, extensions, observability, and local agent mounting.
+
+Architecture lifecycle:
 
 Platform → Initialization → Firmware → Boot → Kernel → Interfaces → Resources → Runtime → Extensions → Applications → State/Events → Shutdown
 
-The public core binds those lifecycle concepts through executable primitives:
+The core is model-independent. The initial local model path uses Ollama as a provider adapter. User-facing desktop packaging and onboarding remain planned work.
 
-Entity → Resource → Interface → Capability → Authorization → Execution
-Relationship ← Event ← Evidence ← Provenance
-State ↔ Synchronize / Reconcile ↔ Persistence
+## Memory contract
 
-## Guarantees and boundaries
+The versioned memory API in `src/memory.mjs` supports explicit records, scopes, kinds, expiry, local JSON persistence, and export. It does not automatically save model conversations or infer consent. A user-facing application must ask before adding memories and provide inspection, editing, export, and deletion controls.
 
-The library makes state transitions explicit and rejects invalid transitions. Evidence is required for state promotion. Authentication and authorization are separate concepts. Events carry evidence and provenance rather than becoming truth automatically. Synchronization reports conflicts instead of silently choosing an answer.
+## Community website
 
-The implementation is intentionally in-process and standard-library-only. Network protocols, operating-system control, databases, and domain applications belong in adapters or extensions.
+A dependency-free static website preview lives in `website/`. Open `website/index.html` locally to preview it. The page contains no analytics, external font imports, or third-party scripts.
 
-## Specification traceability
+Publishing to GitHub Pages requires repository configuration and has not been assumed complete. See `docs/community-website.md`.
 
-Normative executable domains follow: SPEC → SOURCE → TEST → CI
+## Development
 
-See docs/architecture.md for the component map and docs/public-release.md for release controls.
+Requirements: Node.js 24 or newer.
 
-## CLI
-
+```sh
 npm test
 npm run cli -- status
 npm run cli -- sequence
+```
+
+See [Product Strategy](docs/product-strategy.md), [Architecture](docs/architecture.md), [Local Agent Mounting](docs/local-agent-mounting.md), [Privacy](PRIVACY.md), and [Security](SECURITY.md).
+
+## Contributing
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md). Use synthetic examples, do not commit personal data or private configuration, and label proposals separately from implemented features.
