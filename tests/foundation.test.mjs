@@ -63,9 +63,18 @@ test('runtime executes allowed work and records an event', () => {
   const log = createEventLog();
   const policy = createAuthorizationPolicy({ rules:[{ subject:'a', resource:'r1', action:'read', effect:'ALLOW' }] });
   const runtime = createRuntime({ authorizationPolicy:policy, eventLog:log, clock:()=> '2026-01-01T00:00:00.000Z' });
-  const result = runtime.execute({ id:'x1', subject:'a', resource:'r1', action:'read', input:{n:2}, handler:({n})=>n*2 });
+  const capability = createCapability({ id:'read', action:'read', resourceType:'document' });
+  const result = runtime.execute({ id:'x1', subject:'a', resource:'r1', resourceType:'document', action:'read', capability, input:{n:2}, handler:({n})=>n*2 });
   assert.equal(result.result, 4);
   assert.equal(log.list()[0].type, 'EXECUTION_COMPLETED');
+});
+
+test('runtime rejects a capability/action mismatch before execution', () => {
+  const log = createEventLog();
+  const policy = createAuthorizationPolicy({ rules:[{ subject:'a', resource:'r1', action:'read', effect:'ALLOW' }] });
+  const runtime = createRuntime({ authorizationPolicy:policy, eventLog:log });
+  const capability = createCapability({ id:'read', action:'read', resourceType:'document' });
+  assert.throws(() => runtime.execute({ id:'x-cap', subject:'a', resource:'r1', resourceType:'image', action:'read', capability, handler:()=>1 }), error => error.code === 'CAPABILITY_DENIED');
 });
 
 test('runtime rejects unauthorized work and records denial', () => {
