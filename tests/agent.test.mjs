@@ -11,6 +11,14 @@ test('agent profiles are explicit and local by default', () => {
   assert.equal(profile.privacy,'LOCAL_ONLY');
 });
 
+test('LOCAL_ONLY profiles reject remote endpoints and remote mode', () => {
+  assert.throws(() => createAgentProfile({ id:'remote-1', name:'Unsafe', endpoint:'https://example.com' }), /loopback/);
+  assert.throws(() => createAgentProfile({ id:'remote-2', name:'Unsafe', mode:'remote' }), /requires local mode/);
+  assert.throws(() => createAgentProfile({ id:'remote-3', name:'Unsafe', endpoint:'http://user:pass@127.0.0.1:11434' }), /credential-free/);
+  const allowed = createAgentProfile({ id:'remote-4', name:'Explicit remote', mode:'remote', privacy:'NETWORK_ALLOWED', endpoint:'https://example.com' });
+  assert.equal(allowed.endpoint, 'https://example.com');
+});
+
 test('agent registry mounts and lists profiles', () => {
   const registry=createAgentRegistry();
   const profile=createAgentProfile({id:'a1',name:'Personal'});
