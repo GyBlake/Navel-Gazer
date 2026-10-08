@@ -32,4 +32,4 @@ The website directory is a dependency-free static site. Open website/index.html 
 
 ## Publishing
 
-The initial site can be deployed to GitHub Pages after repository settings and the preferred domain are confirmed. Do not add a custom domain or claim a production deployment until it is configured and verified.
+The repository includes a GitHub Actions deployment workflow at `.github/workflows/pages.yml`. The repository must have GitHub Pages configured to use GitHub Actions. After a website change reaches `main`, verify the deployment run and its published URL before advertising the site as live. Do not add a custom domain or claim a production deployment until it is configured and verified.
