@@ -83,6 +83,7 @@ export function createFilesystemAdapter({
       }
       const { targetReal } = await resolveContained(root, relative);
       const data = await fs.readFile(targetReal);
+      const contentDigest = `sha256:${digest(data)}`;
       const execution = runtime.execute({
         id:`filesystem-read-${resource.id}`,
         subject,
@@ -95,12 +96,17 @@ export function createFilesystemAdapter({
           resource:resource.id,
           path:relative || '.',
           content:data.toString('utf8')
+        }),
+        evidenceData:Object.freeze({
+          resource:resource.id,
+          path:relative || '.',
+          bytes:data.byteLength,
+          digest:contentDigest
         })
       });
-      execution.event.evidence.data = undefined;
       return Object.freeze({
         ...execution,
-        digest:`sha256:${digest(data)}`,
+        digest:contentDigest,
         bytes:data.byteLength
       });
     }
