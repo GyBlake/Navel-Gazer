@@ -24,9 +24,21 @@ export function createAgentProfile({
   if (!Array.isArray(capabilities)) throw new TypeError('capabilities must be an array');
   if (typeof systemPrompt !== 'string') throw new TypeError('systemPrompt must be a string');
   if (typeof endpoint !== 'string' || !endpoint.trim()) throw new TypeError('endpoint must be non-empty');
+  let parsedEndpoint;
+  try { parsedEndpoint = new URL(endpoint.trim()); }
+  catch { throw new TypeError('endpoint must be a valid URL'); }
+  if (!['http:','https:'].includes(parsedEndpoint.protocol) || parsedEndpoint.username || parsedEndpoint.password ||
+      parsedEndpoint.search || parsedEndpoint.hash) throw new TypeError('endpoint must be a credential-free HTTP(S) base URL');
+  if (privacy === 'LOCAL_ONLY') {
+    const localHosts = new Set(['localhost','127.0.0.1','[::1]']);
+    if (mode !== 'local') throw new TypeError('LOCAL_ONLY privacy requires local mode');
+    if (parsedEndpoint.protocol !== 'http:' || !localHosts.has(parsedEndpoint.hostname)) {
+      throw new TypeError('LOCAL_ONLY privacy requires a loopback HTTP endpoint');
+    }
+  }
   return Object.freeze({
     schema:'nexus.agent-profile.v1',
-    id, name, provider, model, endpoint: endpoint.replace(/\/$/, ''),
+    id, name, provider, model, endpoint: parsedEndpoint.toString().replace(/\/$/, ''),
     mode, privacy, systemPrompt, capabilities:[...capabilities], metadata
   });
 }
