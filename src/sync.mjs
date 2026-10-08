@@ -1,9 +1,7 @@
 function stable(value) {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
-  if (Array.isArray(value)) return JSON.stringify(value.map(stable));
-  const ordered = {};
-  for (const key of Object.keys(value).sort()) ordered[key] = value[key];
-  return JSON.stringify(ordered);
+  if (Array.isArray(value)) return '[' + value.map(stable).join(',') + ']';
+  return '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + stable(value[key])).join(',') + '}';
 }
 
 export function diffStates(local, remote) {
