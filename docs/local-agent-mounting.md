@@ -21,7 +21,7 @@ Agent profiles explicitly declare:
 - `systemPrompt`
 - declared capabilities
 
-The default is local-only. The public foundation does not silently upload prompts or profile data to an external provider.
+The default is local-only. In this mode, profile validation requires local mode and a credential-free HTTP endpoint bound to a loopback hostname (localhost, 127.0.0.1, or ::1). A remote endpoint requires the explicit NETWORK_ALLOWED policy. The public foundation does not silently upload prompts or profile data to an external provider.
 
 ## Provider contract
 
