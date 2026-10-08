@@ -15,7 +15,7 @@ Navel Gazer is an open project developing a private, local-first personal AI ass
 
 ## Current foundation
 
-The runtime provides explicit system composition, lifecycle control, resources, interfaces, relationships, evidence, provenance, authorization, execution, synchronization, persistence, extensions, observability, and local agent mounting.
+The runtime provides explicit system composition, lifecycle control, resources, interfaces, relationships, evidence, provenance, authorization, execution, synchronization, persistence, extensions, observability, local agent mounting, and a governed tool router. Model-proposed actions are proposals only: registered tools pass through capability and authorization checks, and consequential actions require host-mediated user approval.
 
 Architecture lifecycle:
 
@@ -25,7 +25,7 @@ The core is model-independent. The initial local model path uses Ollama as a pro
 
 ## Memory contract
 
-The versioned memory API in `src/memory.mjs` supports explicit records, scopes, kinds, expiry, local JSON persistence, and export. The conversation-session API in `src/session.mjs` provides bounded in-process chat history and permits only explicitly selected saved memories to be included in a prompt. Neither module automatically saves conversations or infers consent. A user-facing application must ask before adding memories and provide inspection, editing, export, and deletion controls. See [Conversation Sessions](docs/conversation-sessions.md).
+The versioned memory API in `src/memory.mjs` supports explicit records, scopes, kinds, expiry, local JSON persistence, and export. The conversation-session API in `src/session.mjs` provides bounded in-process chat history and permits only explicitly selected saved memories to be included in a prompt. Neither module automatically saves conversations or infers consent. A user-facing application must ask before adding memories and provide inspection, editing, export, and deletion controls. See [Conversation Sessions](docs/conversation-sessions.md) and [Governed Tool Execution](docs/governed-tool-execution.md).
 
 ## Community website
 
