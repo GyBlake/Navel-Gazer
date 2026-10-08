@@ -1,6 +1,16 @@
 import { createEntity, isEntity } from './entity.mjs';
 
-const STATES = Object.freeze(['UNKNOWN','AVAILABLE','ACTIVE','DISABLED','RETIRED']);
+const STATES = Object.freeze(['UNKNOWN','AVAILABLE','ACTIVE','UNAVAILABLE','RECOVERING','DISABLED','RETIRED']);
+
+const TRANSITIONS = Object.freeze({
+  UNKNOWN: Object.freeze(['AVAILABLE','UNAVAILABLE','DISABLED','RETIRED']),
+  AVAILABLE: Object.freeze(['ACTIVE','UNAVAILABLE','DISABLED','RETIRED']),
+  ACTIVE: Object.freeze(['AVAILABLE','UNAVAILABLE','RECOVERING','DISABLED','RETIRED']),
+  UNAVAILABLE: Object.freeze(['RECOVERING','DISABLED','RETIRED']),
+  RECOVERING: Object.freeze(['AVAILABLE','UNAVAILABLE','DISABLED','RETIRED']),
+  DISABLED: Object.freeze(['AVAILABLE','RETIRED']),
+  RETIRED: Object.freeze([])
+});
 
 export function createResource({ id, resourceType='generic', state='UNKNOWN', provenance=null, accessPolicy=null, attributes={} } = {}) {
   if (typeof resourceType !== 'string' || !resourceType.trim()) throw new TypeError('resourceType must be non-empty');
@@ -14,6 +24,10 @@ export function createResource({ id, resourceType='generic', state='UNKNOWN', pr
     provenance,
     accessPolicy
   });
+}
+
+export function canTransitionResource(from, to) {
+  return STATES.includes(from) && STATES.includes(to) && (from === to || TRANSITIONS[from].includes(to));
 }
 
 export function createResourceRegistry() {
@@ -34,6 +48,9 @@ export function createResourceRegistry() {
       if (!STATES.includes(state)) throw new TypeError(`Unknown resource state: ${state}`);
       const current = resources.get(id);
       if (!current) throw new Error(`Unknown resource: ${id}`);
+      if (!canTransitionResource(current.state,state)) {
+        throw new Error(`Invalid resource state transition: ${current.state} -> ${state}`);
+      }
       const next = Object.freeze({...current,state});
       resources.set(id,next);
       return next;
@@ -41,4 +58,4 @@ export function createResourceRegistry() {
   });
 }
 
-export { STATES as RESOURCE_STATES };
+export { STATES as RESOURCE_STATES, TRANSITIONS as RESOURCE_STATE_TRANSITIONS };
