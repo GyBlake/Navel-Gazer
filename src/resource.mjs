@@ -5,10 +5,10 @@ const STATES = Object.freeze(['UNKNOWN','AVAILABLE','ACTIVE','DISABLED','RETIRED
 export function createResource({ id, resourceType='generic', state='UNKNOWN', provenance=null, accessPolicy=null, attributes={} } = {}) {
   if (typeof resourceType !== 'string' || !resourceType.trim()) throw new TypeError('resourceType must be non-empty');
   if (!STATES.includes(state)) throw new TypeError(`Unknown resource state: ${state}`);
-  const entity = createEntity({ id, type: 'RESOURCE', attributes });
+  const entity = createEntity({ id, type:'RESOURCE', attributes });
   return Object.freeze({
-    schema: 'nexus.resource.v1',
     ...entity,
+    schema:'nexus.resource.v1',
     resourceType,
     state,
     provenance,
@@ -30,12 +30,12 @@ export function createResourceRegistry() {
     get(id) { return resources.get(id); },
     has(id) { return resources.has(id); },
     list() { return [...resources.values()]; },
-    setState(id, state) {
+    setState(id,state) {
       if (!STATES.includes(state)) throw new TypeError(`Unknown resource state: ${state}`);
       const current = resources.get(id);
       if (!current) throw new Error(`Unknown resource: ${id}`);
-      const next = Object.freeze({ ...current, state });
-      resources.set(id, next);
+      const next = Object.freeze({...current,state});
+      resources.set(id,next);
       return next;
     }
   });
