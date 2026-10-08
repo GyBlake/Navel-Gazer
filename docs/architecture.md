@@ -1,50 +1,73 @@
 # Architecture
 
-## Platform
+Nexus Foundation is a neutral reference implementation for explicit system composition, execution lifecycle, interfaces, state, provenance, and relationships.
+
+## Reconstruction rule
+
+The public architecture is independently reconstructable from four evidence classes:
+
+- **Function**: what a component does.
+- **Sequence**: what must happen before what.
+- **Interface**: what a component accepts and exposes.
+- **Hardware**: the physical or operating-system mechanism grounding the function.
+
+Private terminology and private application semantics are not part of this model.
+
+## Execution lifecycle
+
+~~~text
+PLATFORM → INITIALIZE → FIRMWARE → BOOT → KERNEL → INTERFACES
+→ RESOURCES → RUNTIME → EXTENSIONS → APPLICATIONS → STATE/EVENTS → SHUTDOWN
+~~~
+
+### Platform
 Physical or virtual execution substrate: CPU/SoC, memory, storage controller, system interconnect, and device interfaces.
 
-## Initialization
-Establishes a known machine state through hardware initialization and firmware configuration.
+### Initialization and firmware
+Initialization establishes a known machine state. Firmware provides the persistent executable instructions used to initialize hardware. Firmware storage is the medium; firmware is the executable content.
 
-## Boot
-Transfers control from initialized hardware into the operating environment through a boot manager or boot program.
+### Boot
+A boot manager or boot program transfers control from initialized hardware into the operating environment.
 
-## Kernel and services
-Manages processes, memory, devices, scheduling, permissions, filesystems, and networking.
+### Kernel and services
+The operating-system kernel manages processes, memory, devices, scheduling, permissions, filesystems, and networking.
 
-## Interfaces
-Explicit boundaries for resources and capabilities: filesystem, network, IPC, API, process, and device interfaces.
+### Interfaces
+Explicit boundaries expose resources and capabilities through filesystem, network, IPC, API, process, and device interfaces.
 
-## Resources
-Addressable things with identifiers, type, state, provenance where applicable, and access policy.
+### Resources
+Resources are addressable entities with identifiers, type, state, provenance where applicable, and access policy.
 
-## Runtime
-Executes authorized work against resources.
+### Runtime
+The runtime executes authorized work against resources.
 
-## Extensions
-Add capabilities without forcing the core to own domain-specific interfaces.
+### Extensions
+Extensions add capabilities without forcing domain-specific interfaces into the core.
 
-## Applications
-Domain-specific software remains outside the neutral core.
+### Applications
+Applications contain domain-specific behavior and remain outside the neutral core.
 
-## State and events
+### State and events
 State represents validated current information. Events represent observations or changes and carry evidence/provenance. An event is not automatically authoritative truth.
 
 ## Specification traceability
 
-The repository treats normative executable domains as a four-part chain:
+Normative executable domains follow:
 
-```text
+~~~text
 SPEC → SOURCE → TEST → CI
-```
-
-Current executable mappings:
+~~~
 
 | Specification | Source | Tests | CI |
 |---|---|---|---|
 | `specs/state.md` | `src/state.mjs` | `tests/state.test.mjs` | `npm test` |
 | `specs/relationship.md` | `src/relationship.mjs` | `tests/relationship.test.mjs` | `npm test` |
-| boot lifecycle described by the architecture | `src/bootstrap.mjs` | `tests/bootstrap.test.mjs` | `npm test` |
-| `specs/hardware-grounding.md` | architectural reference | not applicable | not applicable |
+| execution lifecycle | `src/bootstrap.mjs` | `tests/bootstrap.test.mjs` | `npm test` |
+| `specs/hardware-grounding.md` | `src/hardware.mjs` | `tests/hardware.test.mjs` | `npm test` |
+| public boundary | repository source | `tests/public-boundary.test.mjs` | `npm test` |
 
-Hardware grounding is intentionally descriptive in the neutral core. It defines the physical/OS substrate against which the lifecycle is reasoned about; it does not introduce a simulated hardware abstraction API.
+Hardware grounding is descriptive and traceable. The implementation does not emulate physical hardware.
+
+## Domain boundary
+
+The core provides neutral lifecycle, state, relationship, provenance, and interface scaffolding. Domain-specific semantics belong in extensions or applications.
