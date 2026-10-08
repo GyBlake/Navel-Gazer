@@ -1,30 +1,40 @@
 # Nexus Foundation
 
-Neutral public-facing reference infrastructure for explicit system composition, execution lifecycle, interfaces, state, provenance, and relationships.
+Nexus Foundation is a neutral public reference implementation for explicit system composition, lifecycle control, resources, interfaces, relationships, evidence, provenance, authorization, execution, synchronization, persistence, and extensions.
 
-This project is reconstructed from first principles using only four evidence classes:
+The public model is domain-neutral. It does not contain personal applications, private ontology, personal data, private vocabulary, secrets, or private system configuration.
 
-1. **Function**: what a component does.
-2. **Sequence**: what must happen before what.
-3. **Interface**: what a component accepts and exposes.
-4. **Hardware**: the physical or operating-system mechanism grounding the function.
+## Design evidence
 
-The public model is domain-neutral. It contains no personal applications, personal data, private ontology, private vocabulary, or private system configuration.
+1. Function: what a component does.
+2. Sequence: what must happen before what.
+3. Interface: what a component accepts and exposes.
+4. Hardware: the physical or operating-system mechanism grounding the function.
 
-## Execution model
+## Core architecture
 
-```text
-PLATFORM → INITIALIZE → FIRMWARE → BOOT → KERNEL → INTERFACES
-→ RESOURCES → RUNTIME → EXTENSIONS → APPLICATIONS → STATE/EVENTS → SHUTDOWN
-```
+Platform → Initialization → Firmware → Boot → Kernel → Interfaces → Resources → Runtime → Extensions → Applications → State/Events → Shutdown
 
-## Relationship model
+The public core binds those lifecycle concepts through executable primitives:
 
-```text
-DISCOVER → IDENTIFY → CONNECT → HANDSHAKE → AUTHENTICATE → AUTHORIZE
-→ ESTABLISH → NEGOTIATE → SYNCHRONIZE → EXCHANGE → RECONCILE → INTEGRATE → TEARDOWN
-```
+Entity → Resource → Interface → Capability → Authorization → Execution
+Relationship ← Event ← Evidence ← Provenance
+State ↔ Synchronize / Reconcile ↔ Persistence
 
-This repository is an engineering reference implementation, not a guarantee of legal compliance in every jurisdiction. Deployers remain responsible for applicable law and regulation.
+## Guarantees and boundaries
 
-See `SECURITY.md`, `PRIVACY.md`, and `docs/public-release.md`.
+The library makes state transitions explicit and rejects invalid transitions. Evidence is required for state promotion. Authentication and authorization are separate concepts. Events carry evidence and provenance rather than becoming truth automatically. Synchronization reports conflicts instead of silently choosing an answer.
+
+The implementation is intentionally in-process and standard-library-only. Network protocols, operating-system control, databases, and domain applications belong in adapters or extensions.
+
+## Specification traceability
+
+Normative executable domains follow: SPEC → SOURCE → TEST → CI
+
+See docs/architecture.md for the component map and docs/public-release.md for release controls.
+
+## CLI
+
+npm test
+npm run cli -- status
+npm run cli -- sequence
