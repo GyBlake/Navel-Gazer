@@ -1,0 +1,176 @@
+const $=selector=>document.querySelector(selector);
+const state={view:'chat',conversationId:null,conversations:[],records:[],busy:false,settings:{model:'qwen3:8b',endpoint:'http://127.0.0.1:11434'},status:null,toastTimer:null};
+
+async function api(path,options={}) {
+  const response=await fetch(path,{...options,headers:{...(options.body?{'content-type':'application/json'}:{}),...(options.headers??{})}});
+  const payload=await response.json().catch(()=>({error:'The local app returned an invalid response'}));
+  if(!response.ok) throw new Error(payload.error||'Request failed ('+response.status+')');
+  return payload;
+}
+function toast(message) {
+  const element=$('#toast');element.textContent=message;element.classList.add('show');
+  clearTimeout(state.toastTimer);state.toastTimer=setTimeout(()=>element.classList.remove('show'),3200);
+}
+function element(tag,className,text) {
+  const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;
+}
+function formatDate(value) {
+  try{return new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(value));}
+  catch{return value;}
+}
+async function refreshStatus() {
+  try {
+    state.status=await api('/api/status');
+    $('#connection-dot').className='dot '+(state.status.ollamaConnected?'online':'offline');
+    $('#connection-label').textContent=state.status.ollamaConnected?'Local model connected':'Ollama not responding';
+  } catch {
+    $('#connection-dot').className='dot offline';$('#connection-label').textContent='Local service unavailable';
+  }
+  if(state.view==='diagnostics')renderDiagnostics();
+}
+async function refreshConversations() {
+  const payload=await api('/api/conversations');state.conversations=payload.conversations;renderConversationList();
+}
+function renderConversationList() {
+  const list=$('#conversation-list');list.replaceChildren();
+  if(!state.conversations.length){list.append(element('p','muted small','Your conversations will appear here.'));return;}
+  for(const item of state.conversations) {
+    const button=element('button','conversation-item'+(item.id===state.conversationId?' active':''));
+    button.type='button';button.dataset.id=item.id;
+    button.append(element('strong','',item.preview||'New conversation'),element('small','',formatDate(item.updatedAt)+' · '+item.messageCount+' messages'));
+    button.addEventListener('click',()=>openConversation(item.id));list.append(button);
+  }
+}
+function showView(view) {
+  state.view=view;
+  for(const name of ['chat','memory','settings','diagnostics'])$('#'+name+'-view').hidden=name!==view;
+  document.querySelectorAll('[data-view]').forEach(button=>button.classList.toggle('active',button.dataset.view===view));
+  $('#view-title').textContent=({chat:'A little more room to think.',memory:'Your memory, your rules.',settings:'Tune your local assistant.',diagnostics:'Clear eyes on system status.'})[view];
+  $('#clear-chat').hidden=view!=='chat';
+  if(view==='memory')loadMemory().catch(error=>toast(error.message));
+  if(view==='settings')loadSettings().catch(error=>toast(error.message));
+  if(view==='diagnostics')refreshStatus().then(renderDiagnostics);
+}
+function renderMessages(messages) {
+  const container=$('#messages');container.replaceChildren();
+  for(const message of messages) {
+    const row=element('article','message '+message.role);
+    row.append(element('div','message-avatar',message.role==='user'?'●':'◎'));
+    const body=element('div','message-body');
+    body.append(element('div','message-meta',message.role==='user'?'YOU':'LOCAL ASSISTANT'),element('div','',message.content));
+    row.append(body);container.append(row);
+  }
+  $('#welcome').hidden=messages.length>0;
+  container.scrollIntoView({block:'end',behavior:'smooth'});
+}
+async function openConversation(id) {
+  try {
+    const payload=await api('/api/conversations/'+id);
+    state.conversationId=id;renderMessages(payload.conversation.messages);
+    renderConversationList();showView('chat');$('#message-input').focus();
+  } catch(error){toast(error.message);}
+}
+async function newConversation() {
+  try {
+    const payload=await api('/api/conversations',{method:'POST',body:'{}'});
+    state.conversationId=payload.conversation.id;renderMessages([]);await refreshConversations();showView('chat');$('#message-input').focus();
+  } catch(error){toast(error.message);}
+}
+async function sendMessage(content) {
+  if(state.busy||!content.trim())return;
+  state.busy=true;$('#send-button').disabled=true;$('#message-input').disabled=true;
+  try {
+    if(!state.conversationId)await newConversation();
+    const current=await api('/api/conversations/'+state.conversationId);
+    const optimistic=[...current.conversation.messages,{role:'user',content:content.trim()}];
+    renderMessages(optimistic);$('#message-input').value='';
+    const payload=await api('/api/conversations/'+state.conversationId+'/messages',{method:'POST',body:JSON.stringify({content:content.trim()})});
+    renderMessages(payload.conversation.messages);await refreshConversations();
+  } catch(error) {
+    toast(error.message);
+    if(state.conversationId) {
+      try{const current=await api('/api/conversations/'+state.conversationId);renderMessages(current.conversation.messages);}catch{}
+    }
+  } finally {
+    state.busy=false;$('#send-button').disabled=false;$('#message-input').disabled=false;$('#message-input').focus();
+  }
+}
+async function loadMemory() {
+  const payload=await api('/api/memory');state.records=payload.records;renderMemory();
+}
+function renderMemory() {
+  const list=$('#memory-list');list.replaceChildren();
+  if(!state.records.length){list.append(element('p','muted','No saved memories yet. That is entirely okay.'));return;}
+  for(const record of state.records) {
+    const card=element('article','memory-card');
+    const meta=element('div','memory-meta');meta.append(element('span','',record.kind.toUpperCase()+' · '+record.scope.toUpperCase()),element('span','',formatDate(record.updatedAt)));
+    const content=element('p','',record.content);
+    const actions=element('div','memory-actions');
+    const edit=element('button','','Edit');edit.type='button';edit.addEventListener('click',async()=>{
+      const next=window.prompt('Edit this saved memory:',record.content);if(next===null)return;
+      if(!next.trim()){toast('Memory text cannot be empty.');return;}
+      try{await api('/api/memory/'+record.id,{method:'PATCH',body:JSON.stringify({content:next.trim()})});await loadMemory();toast('Memory updated.');}catch(error){toast(error.message);}
+    });
+    const remove=element('button','','Delete');remove.type='button';remove.addEventListener('click',async()=>{
+      if(!window.confirm('Delete this saved memory?'))return;
+      try{await api('/api/memory/'+record.id,{method:'DELETE'});await loadMemory();toast('Memory deleted.');}catch(error){toast(error.message);}
+    });
+    actions.append(edit,remove);card.append(meta,content,actions);list.append(card);
+  }
+}
+async function loadSettings() {
+  const settings=await api('/api/settings');state.settings=settings;
+  $('#endpoint').value=settings.endpoint;$('#model').value=settings.model;
+}
+async function renderDiagnostics() {
+  if(!state.status){$('#diagnostics').replaceChildren(element('p','muted','Loading diagnostics…'));return;}
+  const entries=[
+    ['Run mode','LOCAL_ONLY','Remote inference is disabled'],
+    ['Model',state.status.model,'Selected local model'],
+    ['Ollama',state.status.ollamaConnected?'Connected':'Not responding','Local model runner'],
+    ['Conversations',String(state.status.conversations),'Saved local conversation records'],
+    ['Memory records',String(state.status.memoryRecords),'Explicitly saved records'],
+    ['Data location',state.status.dataDir,'Local files, not encrypted by this prototype']
+  ];
+  const grid=$('#diagnostics');grid.replaceChildren();
+  for(const [label,value,detail] of entries){const card=element('article','diagnostic-card');card.append(element('span','',label),element('strong','',value),element('small','',detail));grid.append(card);}
+}
+async function refreshModels() {
+  try {
+    const payload=await api('/api/models');
+    if(!payload.connected){$('#settings-message').textContent='Ollama is not responding at this endpoint.';return;}
+    const names=payload.models.map(model=>model.name);
+    $('#settings-message').textContent=names.length?'Installed models: '+names.join(', '):'Ollama is connected, but no models were found.';
+    if(names.length&&!names.includes($('#model').value))$('#model').value=names[0];
+  } catch(error){$('#settings-message').textContent=error.message;}
+}
+$('#new-chat').addEventListener('click',newConversation);
+$('#clear-chat').addEventListener('click',async()=>{
+  if(!state.conversationId)return;
+  if(!window.confirm('Clear messages from this conversation?'))return;
+  try{await api('/api/conversations/'+state.conversationId,{method:'DELETE'});state.conversationId=null;renderMessages([]);await refreshConversations();toast('Conversation deleted.');}catch(error){toast(error.message);}
+});
+document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>showView(button.dataset.view)));
+document.querySelectorAll('[data-prompt]').forEach(button=>button.addEventListener('click',()=>{showView('chat');$('#message-input').value=button.dataset.prompt;$('#message-input').focus();}));
+$('#chat-form').addEventListener('submit',event=>{event.preventDefault();sendMessage($('#message-input').value);});
+$('#message-input').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();$('#chat-form').requestSubmit();}});
+$('#memory-form').addEventListener('submit',async event=>{
+  event.preventDefault();const content=$('#memory-content').value.trim();if(!content)return;
+  if(!window.confirm('Save this information to local memory? You can edit or delete it later.'))return;
+  try{await api('/api/memory',{method:'POST',body:JSON.stringify({content,kind:$('#memory-kind').value,scope:$('#memory-scope').value,confirmed:true})});$('#memory-content').value='';await loadMemory();toast('Memory saved on this device.');}
+  catch(error){toast(error.message);}
+});
+$('#clear-memory').addEventListener('click',async()=>{
+  if(!window.confirm('Permanently remove all saved memory records from this local store?'))return;
+  try{await api('/api/memory',{method:'DELETE'});await loadMemory();toast('All saved memories deleted.');}catch(error){toast(error.message);}
+});
+$('#settings-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  try {
+    const payload=await api('/api/settings',{method:'POST',body:JSON.stringify({endpoint:$('#endpoint').value,model:$('#model').value})});
+    state.settings=payload;$('#settings-message').textContent='Settings saved. Local-only mode remains enforced.';await refreshStatus();toast('Settings saved.');
+  } catch(error){$('#settings-message').textContent=error.message;}
+});
+$('#refresh-models').addEventListener('click',refreshModels);
+await Promise.all([refreshConversations().catch(error=>toast(error.message)),refreshStatus()]);
+showView('chat');
