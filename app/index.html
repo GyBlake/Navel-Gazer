@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#101714">
+  <meta name="description" content="A local-first personal AI assistant with user-controlled memory and transparent settings.">
+  <title>Navel Gazer | Personal AI</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.mjs"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Application navigation">
+      <a class="brand" href="/" aria-label="Navel Gazer home"><span class="brand-symbol">◎</span><span>NAVEL GAZER</span></a>
+      <button id="new-chat" class="new-chat"><span>＋</span> New conversation</button>
+      <div class="side-label">YOUR CONVERSATIONS</div>
+      <nav id="conversation-list" class="conversation-list" aria-label="Conversations"><p class="muted small">Loading conversations…</p></nav>
+      <div class="sidebar-bottom">
+        <div class="connection-line"><span id="connection-dot" class="dot"></span><span id="connection-label">Checking local model…</span></div>
+        <button class="nav-item" data-view="memory"><span>◉</span> Memory controls</button>
+        <button class="nav-item" data-view="settings"><span>⚙</span> Model & settings</button>
+        <button class="nav-item" data-view="diagnostics"><span>⌁</span> Diagnostics</button>
+        <p class="privacy-note">LOCAL FIRST <span>·</span> NO ANALYTICS</p>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div><p class="eyebrow">YOUR PRIVATE WORKSPACE</p><h1 id="view-title">A little more room to think.</h1></div>
+        <div class="topbar-status"><span class="status-chip"><span class="dot"></span> Local mode</span><button id="clear-chat" class="icon-button" title="Clear current conversation" aria-label="Clear current conversation">⌫</button></div>
+      </header>
+      <section id="chat-view" class="view chat-view">
+        <div id="welcome" class="welcome">
+          <div class="welcome-orbit"><span>◎</span></div>
+          <p class="eyebrow">A PERSONAL ASSISTANT, ON YOUR TERMS</p>
+          <h2>What would you like<br><em>to work through?</em></h2>
+          <p class="welcome-copy">Your messages go to the local model configured below. Nothing is sent to a cloud AI provider by this app.</p>
+          <div class="suggestions">
+            <button class="suggestion" data-prompt="Help me organize my day into a realistic plan."><span>↗</span><strong>Plan my day</strong><small>Make space for what matters</small></button>
+            <button class="suggestion" data-prompt="Help me untangle a problem by asking one question at a time."><span>⌁</span><strong>Untangle a problem</strong><small>Think in smaller steps</small></button>
+            <button class="suggestion" data-prompt="Help me turn a rough idea into a practical first draft."><span>✳</span><strong>Build an idea</strong><small>Move from spark to shape</small></button>
+          </div>
+        </div>
+        <div id="messages" class="messages" aria-live="polite"></div>
+        <form id="chat-form" class="composer">
+          <label class="sr-only" for="message-input">Your message</label>
+          <textarea id="message-input" rows="1" maxlength="20000" placeholder="Message your local assistant…" required></textarea>
+          <div class="composer-footer"><span id="composer-hint">Enter to send · Shift + Enter for a new line</span><button id="send-button" class="send-button" type="submit">Send <span>↑</span></button></div>
+        </form>
+        <p class="fineprint">AI can make mistakes. Review important information and confirm actions yourself.</p>
+      </section>
+      <section id="memory-view" class="view panel-view" hidden>
+        <div class="panel-intro"><p class="eyebrow">PERSONALIZATION, WITH CONSENT</p><h2>Memory you <em>control.</em></h2><p>Only information you explicitly save appears here. Review it, edit it, or remove it whenever you like.</p></div>
+        <form id="memory-form" class="memory-form">
+          <label for="memory-content">Save a memory</label><textarea id="memory-content" rows="3" maxlength="10000" placeholder="Example: I prefer concise summaries with clear next steps." required></textarea>
+          <div class="form-row"><label>Type<select id="memory-kind"><option value="preference">Preference</option><option value="fact">Fact</option><option value="task">Task</option><option value="summary">Summary</option></select></label><label>Scope<select id="memory-scope"><option value="user">Across my assistant</option><option value="agent">This agent</option><option value="session">This session</option></select></label><button class="primary-button" type="submit">Save memory</button></div>
+          <p class="fineprint">Saving requires confirmation. Conversations are never automatically converted into memories.</p>
+        </form>
+        <div class="list-heading"><h3>Saved records</h3><button id="clear-memory" class="text-button danger">Delete all memories</button></div>
+        <div id="memory-list" class="memory-list"></div>
+      </section>
+      <section id="settings-view" class="view panel-view" hidden>
+        <div class="panel-intro"><p class="eyebrow">LOCAL MODEL CONFIGURATION</p><h2>Your model. <em>Your machine.</em></h2><p>Choose a model served by Ollama on this device. Remote endpoints are not accepted in local-only mode.</p></div>
+        <form id="settings-form" class="settings-form">
+          <label for="endpoint">Ollama endpoint</label><input id="endpoint" type="url" value="http://127.0.0.1:11434" required>
+          <label for="model">Model name</label><input id="model" type="text" value="qwen3:8b" maxlength="128" required>
+          <div class="form-row"><button id="refresh-models" class="secondary-button" type="button">Check installed models</button><button class="primary-button" type="submit">Save settings</button></div>
+          <p id="settings-message" class="inline-message" role="status"></p>
+        </form>
+        <div class="privacy-card"><span>◉</span><div><h3>Local-only mode is enforced</h3><p>The app accepts only loopback HTTP endpoints and makes no cloud AI requests. Changing the endpoint does not enable remote access.</p></div></div>
+      </section>
+      <section id="diagnostics-view" class="view panel-view" hidden>
+        <div class="panel-intro"><p class="eyebrow">SYSTEM STATUS</p><h2>Know what’s <em>running.</em></h2><p>Local diagnostics to help understand the current configuration and data footprint.</p></div>
+        <div id="diagnostics" class="diagnostics-grid"></div>
+        <div class="privacy-card"><span>!</span><div><h3>Storage note</h3><p>Conversation and memory files are local but not encrypted by this prototype. Keep your device account protected. Export or delete data when you no longer need it.</p></div></div>
+      </section>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </main>
+  </div>
+</body>
+</html>
