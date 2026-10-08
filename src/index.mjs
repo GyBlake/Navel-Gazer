@@ -15,3 +15,6 @@ export * from './persistence.mjs';
 export * from './observability.mjs';
 export * from './extensions.mjs';
 export * from './system.mjs';
+
+export * from './http.mjs';
+export * from './ipc.mjs';
