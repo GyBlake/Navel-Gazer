@@ -1,11 +1,20 @@
 {
-  "name":"nexus-foundation",
-  "version":"0.2.0",
-  "private":false,
-  "description":"Neutral public reference infrastructure for explicit resources, interfaces, lifecycles, evidence, provenance, authorization, execution, synchronization, persistence, and extensions.",
-  "type":"module",
-  "engines":{"node":">=24"},
-  "bin":{"nexus":"./bin/nexus.mjs"},
-  "scripts":{"test":"node --test","check":"npm test","cli":"node ./bin/nexus.mjs"},
-  "license":"Apache-2.0"
+  "name": "nexus-foundation",
+  "version": "0.2.0",
+  "private": false,
+  "description": "Neutral public reference infrastructure for explicit resources, interfaces, lifecycles, evidence, provenance, authorization, execution, synchronization, persistence, and extensions.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "nexus": "./bin/nexus.mjs"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "npm test",
+    "cli": "node ./bin/nexus.mjs",
+    "app": "node ./src/local-app-server.mjs"
+  },
+  "license": "Apache-2.0"
 }
