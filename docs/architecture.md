@@ -20,6 +20,8 @@
 | Persistence | src/persistence.mjs | Snapshot serialization/recovery boundary |
 | Extensions | src/extensions.mjs | Optional capability additions outside the core |
 | Observability | src/observability.mjs | In-process structured telemetry |
+| HTTP transport | src/http.mjs | Optional read-only HTTP API adapter |
+| IPC transport | src/ipc.mjs | Optional message-channel adapter |
 | System | src/system.mjs | Composition root for the public primitives |
 
 ## Boot lifecycle
