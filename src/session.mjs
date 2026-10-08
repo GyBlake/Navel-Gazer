@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { createConversationRecord } from './conversation-store.mjs';
 
 const ROLES = Object.freeze(['user','assistant']);
 
@@ -10,29 +11,45 @@ function cloneMessage(message) {
   return Object.freeze({ role:message.role, content:message.content });
 }
 
-export function createConversationSession({ id=randomUUID(), agent, initialMessages=[], memoryStore=null, clock=() => new Date().toISOString(), maxMessages=100 } = {}) {
+export function createConversationSession({
+  id=randomUUID(), agent, initialMessages=[], memoryStore=null,
+  clock=() => new Date().toISOString(), maxMessages=100, createdAt=null, onChange=null
+} = {}) {
   if (typeof id !== 'string' || !id.trim()) throw new TypeError('session id must be non-empty');
   if (!agent || typeof agent.chat !== 'function' || !agent.profile) throw new TypeError('mounted agent required');
   if (!Array.isArray(initialMessages) || !initialMessages.every(validMessage)) throw new TypeError('initialMessages must contain user or assistant text messages');
   if (!Number.isInteger(maxMessages) || maxMessages < 2) throw new TypeError('maxMessages must be an integer of at least 2');
   if (memoryStore !== null && typeof memoryStore.list !== 'function') throw new TypeError('memoryStore must implement list()');
+  if (onChange !== null && typeof onChange !== 'function') throw new TypeError('onChange must be a function or null');
 
   let messages = initialMessages.map(cloneMessage);
   let busy = false;
-  const createdAt = clock();
+  const sessionCreatedAt = createdAt ?? clock();
+  let updatedAt = sessionCreatedAt;
 
   function history() { return messages.map(cloneMessage); }
   function append(message) {
     messages.push(cloneMessage(message));
     if (messages.length > maxMessages) messages = messages.slice(messages.length - maxMessages);
+    updatedAt = clock();
+  }
+  async function persist() {
+    if (!onChange) return;
+    await onChange(createConversationRecord({
+      id, agentId:agent.profile.id, createdAt:sessionCreatedAt, updatedAt, messages:history()
+    }));
   }
 
   return Object.freeze({
     id,
     agentId:agent.profile.id,
-    createdAt,
+    createdAt:sessionCreatedAt,
     getMessages:history,
-    clear() { messages = []; },
+    async clear() {
+      messages = [];
+      updatedAt = clock();
+      await persist();
+    },
     async send(content, { options={}, memoryIds=[] } = {}) {
       if (busy) {
         const error = new Error('A response is already in progress for this session');
@@ -68,9 +85,11 @@ export function createConversationSession({ id=randomUUID(), agent, initialMessa
       busy = true;
       append(userMessage);
       try {
+        await persist();
         const result = await agent.chat({ messages:[...contextMessages, ...history()], options });
         if (!result || typeof result.content !== 'string') throw new TypeError('Agent provider returned an invalid chat result');
         append({ role:'assistant', content:result.content });
+        await persist();
         return Object.freeze({
           sessionId:id,
           message:cloneMessage({ role:'assistant', content:result.content }),
@@ -85,6 +104,25 @@ export function createConversationSession({ id=randomUUID(), agent, initialMessa
         busy = false;
       }
     }
+  });
+}
+
+export function restoreConversationSession({ store, id, agent, ...options } = {}) {
+  if (!store || typeof store.get !== 'function') throw new TypeError('conversation store required');
+  const record = store.get(id);
+  if (!record) {
+    const error = new Error('Conversation not found: ' + id);
+    error.code = 'CONVERSATION_NOT_FOUND';
+    throw error;
+  }
+  if (record.agentId !== agent?.profile?.id) {
+    const error = new Error('Conversation belongs to a different agent');
+    error.code = 'CONVERSATION_AGENT_MISMATCH';
+    throw error;
+  }
+  return createConversationSession({
+    ...options, id:record.id, agent, initialMessages:record.messages,
+    createdAt:record.createdAt, onChange:updated => store.save(updated)
   });
 }
 
