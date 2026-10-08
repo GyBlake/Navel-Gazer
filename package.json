@@ -15,10 +15,84 @@
     "check": "npm test",
     "cli": "node ./bin/nexus.mjs",
     "app": "node ./src/local-app-server.mjs",
-    "desktop": "electron desktop/main.cjs"
+    "desktop": "electron desktop/main.cjs",
+    "dist:mac": "electron-builder --mac dmg zip",
+    "dist:win": "electron-builder --win nsis",
+    "dist:linux": "electron-builder --linux AppImage deb"
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "electron": "44.7.0"
+    "electron": "44.7.0",
+    "electron-builder": "26.17.0"
+  },
+  "main": "desktop/main.cjs",
+  "build": {
+    "appId": "org.navelgazer.desktop",
+    "productName": "Navel Gazer",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "desktop/**/*",
+      "src/**/*",
+      "app/**/*",
+      "package.json",
+      "LICENSE",
+      "NOTICE",
+      "PRIVACY.md",
+      "SECURITY.md",
+      "!tests/**",
+      "!website/**",
+      "!docs/**",
+      "!specs/**",
+      "!bin/**"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "category": "Utility",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
   }
 }
