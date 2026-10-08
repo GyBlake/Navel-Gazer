@@ -10,7 +10,7 @@ Requirements: Node.js 24 or newer and Ollama installed locally with a model down
 npm run app
 ```
 
-Open the loopback URL printed by the command. The app binds to `127.0.0.1` and stores data under `~/.navel-gazer` by default. Set `NAVEL_GAZER_HOME` support is planned; for now, the programmatic server factory accepts an explicit `dataDir` for tests and host integration.
+Open the loopback URL printed by the command. The app binds to `127.0.0.1` and stores data under `~/.navel-gazer` by default. Set `NAVEL_GAZER_HOME` to choose a different data directory.
 
 ## Included
 
