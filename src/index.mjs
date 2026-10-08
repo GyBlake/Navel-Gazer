@@ -26,3 +26,4 @@ export * from './resource-health.mjs';
 export * from './memory.mjs';
 export * from './session.mjs';
 export * from './tool-router.mjs';
+export * from './conversation-store.mjs';
