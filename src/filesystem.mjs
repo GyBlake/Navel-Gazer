@@ -8,7 +8,7 @@ import { createRuntime } from './runtime.mjs';
 function normalizeRelativePath(input) {
   if (typeof input !== 'string' || !input.trim()) throw new TypeError('path must be a non-empty string');
   const value = input.replaceAll('\\', '/');
-  if (value.startsWith('/') || /^[A-Za-z]:\\//.test(value)) {
+  if (value.startsWith('/') || /^[A-Za-z]:\//.test(value)) {
     throw new Error('Absolute paths are not allowed');
   }
   const normalized = path.posix.normalize(value);
