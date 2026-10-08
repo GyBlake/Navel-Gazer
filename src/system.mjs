@@ -16,8 +16,9 @@ export function createNexusSystem({ authorizationPolicy=null } = {}) {
   return Object.freeze({
     get boot() { return boot; },
     advanceBoot(to) {
+      const from = boot.stage;
       boot = advanceBoot(boot,to);
-      telemetry.record('BOOT_TRANSITION',{from:boot.stage === 'PLATFORM' ? null : undefined,to});
+      telemetry.record('BOOT_TRANSITION',{from,to});
       return boot;
     },
     bootSequence() { return [...BOOT_STAGES]; },
