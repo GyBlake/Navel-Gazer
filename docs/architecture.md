@@ -1,50 +1,68 @@
 # Architecture
 
-## Platform
-Physical or virtual execution substrate: CPU/SoC, memory, storage controller, system interconnect, and device interfaces.
+## Layers
 
-## Initialization
-Establishes a known machine state through hardware initialization and firmware configuration.
+| Layer | Implementation | Purpose |
+|---|---|---|
+| Platform / boot | src/bootstrap.mjs | Explicit machine/execution lifecycle |
+| State | src/state.mjs | Evidence-gated state promotion |
+| Entity | src/entity.mjs | Addressable identity |
+| Resource | src/resource.mjs | Typed addressable resources and policy metadata |
+| Interface | src/interface.mjs | Explicit capability-bearing boundaries |
+| Capability | src/capability.mjs | Named operations and resource scope |
+| Relationship | src/relationship.mjs | Connection, authorization, synchronization, integration lifecycle |
+| Evidence | src/evidence.mjs | Structured observation records |
+| Provenance | src/provenance.mjs | Lineage of evidence and derived records |
+| Event | src/event.mjs | Observation/change records |
+| Authorization | src/authorization.mjs | Explicit allow/deny policy |
+| Runtime | src/runtime.mjs | Authorization-gated work execution and result events |
+| Synchronization | src/sync.mjs | State comparison and explicit conflict reporting |
+| Persistence | src/persistence.mjs | Snapshot serialization/recovery boundary |
+| Extensions | src/extensions.mjs | Optional capability additions outside the core |
+| Observability | src/observability.mjs | In-process structured telemetry |
+| System | src/system.mjs | Composition root for the public primitives |
 
-## Boot
-Transfers control from initialized hardware into the operating environment through a boot manager or boot program.
+## Boot lifecycle
 
-## Kernel and services
-Manages processes, memory, devices, scheduling, permissions, filesystems, and networking.
+PLATFORM → INITIALIZE → FIRMWARE → BOOT → KERNEL → INTERFACES → RESOURCES → RUNTIME → EXTENSIONS → APPLICATIONS → STATE_EVENTS → SHUTDOWN
 
-## Interfaces
-Explicit boundaries for resources and capabilities: filesystem, network, IPC, API, process, and device interfaces.
+## Relationship lifecycle
 
-## Resources
-Addressable things with identifiers, type, state, provenance where applicable, and access policy.
+DISCOVERING → IDENTIFIED → CONNECTED → HANDSHAKEN → AUTHENTICATED → AUTHORIZED → ESTABLISHED → NEGOTIATING → ACTIVE → SYNCHRONIZING → SYNCHRONIZED → EXCHANGING → RECONCILING → INTEGRATED
 
-## Runtime
-Executes authorized work against resources.
+Teardown: ACTIVE / INTEGRATED → TEARING_DOWN → DISCONNECTED
 
-## Extensions
-Add capabilities without forcing the core to own domain-specific interfaces.
+Connection does not imply authorization. Authentication establishes identity evidence. Authorization establishes permitted operations. Synchronization does not imply semantic equivalence. Exchange does not imply ownership. Integration is optional.
 
-## Applications
-Domain-specific software remains outside the neutral core.
+## Event/state contract
 
-## State and events
-State represents validated current information. Events represent observations or changes and carry evidence/provenance. An event is not automatically authoritative truth.
+Events record observations or changes. State represents accepted current information. An event therefore does not automatically authorize a state transition. State promotion requires evidence.
 
-## Specification traceability
+## Resource and interface contract
 
-The repository treats normative executable domains as a four-part chain:
+Resources are addressable typed objects. Interfaces are explicit boundaries owned by an entity and may expose named capabilities. Domain-specific protocols remain outside the core.
 
-```text
-SPEC → SOURCE → TEST → CI
-```
+## Synchronization contract
 
-Current executable mappings:
+The sync module compares two state objects and returns SYNCHRONIZED, RECONCILED, or CONFLICT. The default resolver never silently selects a winner.
 
-| Specification | Source | Tests | CI |
-|---|---|---|---|
-| `specs/state.md` | `src/state.mjs` | `tests/state.test.mjs` | `npm test` |
-| `specs/relationship.md` | `src/relationship.mjs` | `tests/relationship.test.mjs` | `npm test` |
-| boot lifecycle described by the architecture | `src/bootstrap.mjs` | `tests/bootstrap.test.mjs` | `npm test` |
-| `specs/hardware-grounding.md` | architectural reference | not applicable | not applicable |
+## Persistence contract
 
-Hardware grounding is intentionally descriptive in the neutral core. It defines the physical/OS substrate against which the lifecycle is reasoned about; it does not introduce a simulated hardware abstraction API.
+Snapshots are JSON-serializable records with schema versioning. File persistence is an adapter boundary, not a database engine.
+
+## Hardware grounding
+
+| Function | Hardware / OS grounding |
+|---|---|
+| Compute | CPU / SoC |
+| Persistent initialization data | firmware storage |
+| Hardware initialization | BIOS / UEFI |
+| Boot transition | EFI boot manager / boot program |
+| Execution management | kernel |
+| State transport | system interconnect / bus |
+| Durable storage | SSD / filesystem |
+| Local I/O | device/controller interfaces |
+| Active work | process/runtime |
+| Added capability | driver/module/plugin |
+
+The neutral core describes these substrates; it does not simulate a motherboard or replace an operating system.
