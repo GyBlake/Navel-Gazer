@@ -1,14 +1,13 @@
 # State Model
 
-```text
-OBSERVED → PARSED → NORMALIZED → VALIDATED
-                         └→ DERIVED
+OBSERVED → PARSED → NORMALIZED → VALIDATED → DERIVED
 
 UNKNOWN / BLOCKED / INCONCLUSIVE
-```
 
-Information is promoted only when the required evidence exists. Unknown, blocked, and inconclusive are valid states and must not be silently promoted to success or authority.
+Information is promoted only when required evidence exists. Unknown, blocked, and inconclusive are terminal uncertainty states and must not be silently promoted.
 
-## Runtime contract
+Runtime implementation: src/state.mjs.
 
-The public core represents this state model through `src/state.mjs`. State promotion requires explicit evidence. Terminal uncertainty states (`UNKNOWN`, `BLOCKED`, and `INCONCLUSIVE`) are not silently promoted.
+## Invariant
+
+A transition to PARSED, NORMALIZED, VALIDATED, or DERIVED requires a non-null evidence value. The module records that evidence was supplied; it does not claim the evidence is true.
