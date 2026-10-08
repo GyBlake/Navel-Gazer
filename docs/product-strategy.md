@@ -14,7 +14,8 @@ Everyday users who want a useful personal assistant without depending on a paid 
 
 ## MVP boundary
 
-- Guided desktop setup and local model connection.
+- Local interface MVP with chat, model selection, diagnostics, and local model connection.
+- Installable desktop packaging and guided first-run setup.
 - Ollama as the first model-runner adapter, with model choice kept configurable.
 - Personalized agent profiles and conversation sessions.
 - Explicit user-controlled memory with inspect, edit, export, and delete operations.
