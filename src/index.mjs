@@ -27,3 +27,4 @@ export * from './memory.mjs';
 export * from './session.mjs';
 export * from './tool-router.mjs';
 export * from './conversation-store.mjs';
+export * from './local-app-server.mjs';
