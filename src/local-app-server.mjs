@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { promises as fs } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createAgentProfile, createAgentMount } from './agent.mjs';
 import { createOllamaProvider } from './ollama.mjs';
@@ -68,9 +68,9 @@ async function readJson(request, maxBytes=1_000_000) {
 }
 
 async function atomicJson(path, value) {
-  const directory=join(path,'..');
+  const directory=dirname(path);
   await fs.mkdir(directory,{recursive:true,mode:0o700});
-  const temporary=join(directory,'.'+path.split('/').at(-1)+'.'+process.pid+'.tmp');
+  const temporary=join(directory,'.'+basename(path)+'.'+process.pid+'.tmp');
   try {
     await fs.writeFile(temporary,JSON.stringify(value,null,2)+'\n',{encoding:'utf8',mode:0o600});
     await fs.rename(temporary,path);
@@ -81,7 +81,7 @@ async function atomicJson(path, value) {
 }
 
 export async function createLocalAppServer({
-  host='127.0.0.1', port=43127, dataDir=join(homedir(),'.navel-gazer'), fetchImpl=globalThis.fetch,
+  host='127.0.0.1', port=43127, dataDir=process.env.NAVEL_GAZER_HOME ?? join(homedir(),'.navel-gazer'), fetchImpl=globalThis.fetch,
   clock=() => new Date().toISOString()
 } = {}) {
   if (!['127.0.0.1','localhost','::1'].includes(host)) throw new TypeError('Local app server must bind to loopback');
@@ -239,7 +239,8 @@ export async function createLocalAppServer({
         return sendJson(response,404,{error:'Route not found'});
       } catch (error) {
         const status=error.status ?? (error.code==='MODEL_PROVIDER_TIMEOUT'?504:
-          error.code==='MODEL_PROVIDER_HTTP_ERROR'?502:400);
+          (error.code==='MODEL_PROVIDER_HTTP_ERROR' || url.pathname.endsWith('/messages'))?502:
+          error instanceof TypeError?400:500);
         return sendJson(response,status,{error:error.message || 'Request failed',code:error.code ?? 'REQUEST_FAILED'});
       }
     }
