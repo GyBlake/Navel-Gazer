@@ -16,3 +16,5 @@ jobs:
       - run: npm test
       - name: Verify module syntax
         run: find src bin tests -type f -name '*.mjs' -print0 | xargs -0 -n1 node --check
+      - name: Verify desktop wrapper syntax
+        run: node --check desktop/main.cjs

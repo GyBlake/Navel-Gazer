@@ -2,7 +2,7 @@
 
 Navel Gazer is an open project developing a private, local-first personal AI assistant backed by a neutral, governed runtime. The goal is practical capability with user-controlled memory, explicit permissions, evidence-aware execution, and local operation by default.
 
-**Product status:** in development. The repository provides runtime primitives, local agent interfaces, durable local conversation storage, and an early browser-based local assistant interface. The packaged desktop application is not yet released.
+**Product status:** in development. The repository provides runtime primitives, local agent interfaces, durable local conversation storage, and an early browser-based local assistant interface. An Electron desktop wrapper is now included for development; signed installers and a production release are not yet available.
 
 ## Project principles
 
