@@ -21,7 +21,7 @@ Architecture lifecycle:
 
 Platform → Initialization → Firmware → Boot → Kernel → Interfaces → Resources → Runtime → Extensions → Applications → State/Events → Shutdown
 
-The core is model-independent. The initial local model path uses Ollama as a provider adapter. A local UI MVP is available with `npm run app`. It includes local-model chat, conversation management, explicit memory controls, settings, and diagnostics. Installable desktop packaging and first-run onboarding remain planned work.
+The core is model-independent. The initial local model path uses Ollama as a provider adapter. The local UI MVP includes chat, conversation management, explicit memory controls, settings, and diagnostics. Run `npm install` then `npm run desktop` for the Electron wrapper, or `npm run app` for the browser interface. Unsigned development build configuration is included; signed release packaging and first-run onboarding remain planned work.
 
 ## Memory contract
 
@@ -31,13 +31,16 @@ The versioned memory API in `src/memory.mjs` supports explicit records, scopes, 
 
 A dependency-free static website preview lives in `website/`. Open `website/index.html` locally to preview it. The page contains no analytics, external font imports, or third-party scripts.
 
-Publishing to GitHub Pages requires repository configuration and has not been assumed complete. See `docs/community-website.md`.
+The website deployment workflow is configured, but a live URL will only be announced after repository Pages settings and a successful deployment are verified. See `docs/community-website.md`.
 
 ## Development
 
 Requirements: Node.js 24 or newer.
 
 ```sh
+npm install
+npm run desktop
+# or: npm run app
 npm test
 npm run cli -- status
 npm run cli -- sequence
