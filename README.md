@@ -25,7 +25,7 @@ The core is model-independent. The initial local model path uses Ollama as a pro
 
 ## Memory contract
 
-The versioned memory API in `src/memory.mjs` supports explicit records, scopes, kinds, expiry, local JSON persistence, and export. It does not automatically save model conversations or infer consent. A user-facing application must ask before adding memories and provide inspection, editing, export, and deletion controls.
+The versioned memory API in `src/memory.mjs` supports explicit records, scopes, kinds, expiry, local JSON persistence, and export. The conversation-session API in `src/session.mjs` provides bounded in-process chat history and permits only explicitly selected saved memories to be included in a prompt. Neither module automatically saves conversations or infers consent. A user-facing application must ask before adding memories and provide inspection, editing, export, and deletion controls. See [Conversation Sessions](docs/conversation-sessions.md).
 
 ## Community website
 
