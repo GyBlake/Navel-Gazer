@@ -14,7 +14,11 @@
     "test": "node --test",
     "check": "npm test",
     "cli": "node ./bin/nexus.mjs",
-    "app": "node ./src/local-app-server.mjs"
+    "app": "node ./src/local-app-server.mjs",
+    "desktop": "electron desktop/main.cjs"
   },
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "electron": "44.7.0"
+  }
 }
