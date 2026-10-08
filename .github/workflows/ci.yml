@@ -14,3 +14,5 @@ jobs:
           node-version: 24
           package-manager-cache: false
       - run: npm test
+      - name: Verify module syntax
+        run: find src bin tests -type f -name '*.mjs' -print0 | xargs -0 -n1 node --check
