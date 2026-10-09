@@ -10,6 +10,7 @@ import { createFileConversationStore } from './conversation-store.mjs';
 import { createConversationSession, restoreConversationSession } from './session.mjs';
 import { createFileMemoryStore, createMemoryRecord } from './memory.mjs';
 import { createMcpManager } from './mcp-manager.mjs';
+import { createMcpExecutionBroker } from './mcp-execution-broker.mjs';
 
 const DEFAULT_ENDPOINT = 'http://127.0.0.1:11434';
 const DEFAULT_MODEL = 'qwen3:8b';
@@ -111,6 +112,7 @@ export async function createLocalAppServer({
   const memoryAdapter=createFileMemoryStore({path:join(dataDir,'memory.json')});
   const memoryStore=await memoryAdapter.load({clock});
   const mcpManager=await createMcpManager({path:join(dataDir,'mcp-registry.json'),clock});
+  const mcpBroker=await createMcpExecutionBroker({manager:mcpManager,auditPath:join(dataDir,'mcp-audit.json'),clock});
   const settingsPath=join(dataDir,'settings.json');
   let settings={endpoint:DEFAULT_ENDPOINT,model:DEFAULT_MODEL,profile:{...DEFAULT_PROFILE,tasks:[...DEFAULT_PROFILE.tasks]}};
   try {
@@ -187,13 +189,14 @@ export async function createLocalAppServer({
           return sendJson(response,200,{...settings,privacy:'LOCAL_ONLY'});
         }
         if (url.pathname === '/api/mcp/servers' && method === 'GET') return sendJson(response,200,{servers:mcpManager.list()});
+        if (url.pathname === '/api/mcp/audit' && method === 'GET') return sendJson(response,200,{records:mcpBroker.listAudit({limit:Number(url.searchParams.get('limit')??100)})});
         if (url.pathname === '/api/mcp/servers' && method === 'POST') {
           const body=await readJson(request);
           if (body.confirmed !== true) return sendJson(response,400,{error:'Confirm adding this local process configuration explicitly'});
           const server=await mcpManager.add(body);
           return sendJson(response,201,{server});
         }
-        const mcpMatch=url.pathname.match(/^\/api\/mcp\/servers\/([a-zA-Z0-9._-]{1,80})(?:\/(connect|disconnect|tools\/([a-zA-Z0-9._-]{1,80})\/(grant|call)))?$/);
+        const mcpMatch=url.pathname.match(/^\/api\/mcp\/servers\/([a-zA-Z0-9._-]{1,80})(?:\/(connect|disconnect|tools\/([a-zA-Z0-9._-]{1,80})\/(grant|prepare|call)))?$/);
         if (mcpMatch) {
           const [,id,action,toolName,toolAction]=mcpMatch;
           if (!mcpManager.list().some(server=>server.id===id)) return sendJson(response,404,{error:'MCP server not found'});
@@ -208,11 +211,15 @@ export async function createLocalAppServer({
             if (body.confirmed !== true || typeof body.approved !== 'boolean') return sendJson(response,400,{error:'Explicit confirmation and a boolean approval are required'});
             return sendJson(response,200,{server:await mcpManager.setToolGrant(id,toolName,body.approved)});
           }
+          if (toolAction==='prepare' && method==='POST') {
+            const body=await readJson(request);
+            return sendJson(response,200,{proposal:await mcpBroker.prepare({serverId:id,toolName,arguments:body.arguments??{}})});
+          }
           if (toolAction==='call' && method==='POST') {
             const body=await readJson(request);
-            if (body.confirmed !== true) return sendJson(response,400,{error:'Explicit confirmation is required for every tool invocation'});
-            const result=await mcpManager.callTool(id,toolName,body.arguments??{});
-            return sendJson(response,200,{invocation:result});
+            if (body.confirmed !== true) return sendJson(response,400,{error:'Explicit user confirmation is required for every tool invocation'});
+            const invocation=await mcpBroker.execute({challengeId:body.challengeId});
+            return sendJson(response,200,{invocation});
           }
           return sendJson(response,405,{error:'Method not allowed'});
         }
@@ -324,6 +331,7 @@ export async function createLocalAppServer({
     async close() {
       if (!server.listening) return;
       await new Promise((resolveClose,reject)=>server.close(error=>error?reject(error):resolveClose()));
+      mcpBroker.close();
       await mcpManager.close();
     },
     dataDir
