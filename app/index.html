@@ -21,6 +21,7 @@
         <div class="connection-line"><span id="connection-dot" class="dot"></span><span id="connection-label">Checking local model…</span></div>
         <button class="nav-item" data-view="memory"><span>◉</span> Memory controls</button>
         <button class="nav-item" data-view="settings"><span>⚙</span> Model & settings</button>
+        <button class="nav-item" data-view="mcp"><span>⇄</span> Tools & MCP</button>
         <button class="nav-item" data-view="diagnostics"><span>⌁</span> Diagnostics</button>
         <p class="privacy-note">LOCAL FIRST <span>·</span> NO ANALYTICS</p>
       </div>
@@ -89,6 +90,19 @@
           <p id="settings-message" class="inline-message" role="status"></p>
         </form>
         <div class="privacy-card"><span>◉</span><div><h3>Local-only mode is enforced</h3><p>This release only sends inference to a loopback Ollama endpoint. Remote providers and MCP server connections are not enabled by these preferences. MCP selection records your preference only; connections must be implemented and individually authorized before use.</p></div></div>
+      </section>
+      <section id="mcp-view" class="view panel-view" hidden>
+        <div class="panel-intro"><p class="eyebrow">GOVERNED TOOL ACCESS</p><h2>Tools on <em>your terms.</em></h2><p>MCP servers run only after you explicitly connect. Each tool starts denied and requires its own approval. Tool descriptions and results are untrusted data.</p></div>
+        <form id="mcp-server-form" class="settings-form">
+          <h3>Add a local MCP server</h3>
+          <label for="mcp-name">Display name</label><input id="mcp-name" maxlength="80" required placeholder="Example: Local notes">
+          <label for="mcp-command">Executable or command path</label><input id="mcp-command" maxlength="2048" required placeholder="/absolute/path/to/server">
+          <label for="mcp-args">Arguments (JSON array of strings)</label><textarea id="mcp-args" rows="2" maxlength="10000" placeholder='["--stdio"]'>[]</textarea>
+          <p class="fineprint">Security: connecting launches the configured local executable with no shell and a restricted environment. Only add commands you trust. Remote HTTP MCP, automatic model tool use, credentials, resources, and prompts are not enabled in this release.</p>
+          <button class="primary-button" type="submit">Add server configuration</button>
+        </form>
+        <div class="list-heading"><h3>Configured servers</h3><button id="refresh-mcp" class="text-button" type="button">Refresh</button></div>
+        <div id="mcp-server-list" class="memory-list"><p class="muted">Loading MCP configuration…</p></div>
       </section>
       <section id="diagnostics-view" class="view panel-view" hidden>
         <div class="panel-intro"><p class="eyebrow">SYSTEM STATUS</p><h2>Know what’s <em>running.</em></h2><p>Local diagnostics to help understand the current configuration and data footprint.</p></div>
