@@ -2,6 +2,8 @@ import { promises as fs } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
 const ROLES = Object.freeze(['user','assistant']);
+const EVENT_SCHEMA = 'nexus.conversation-event.v1';
+const COMPACT_AFTER_EVENTS = 128;
 
 function required(value, name) {
   if (typeof value !== 'string' || !value.trim()) throw new TypeError(name + ' must be a non-empty string');
@@ -49,8 +51,17 @@ export function createConversationStore({ records=[], clock=() => new Date().toI
     items.set(item.id, createConversationRecord(item));
   }
 
-  async function commit(nextItems) {
-    if (persist) await persist([...nextItems.values()]);
+  let mutationTail = Promise.resolve();
+  function mutate(operation) {
+    const result = mutationTail.then(operation);
+    mutationTail = result.catch(() => {});
+    return result;
+  }
+
+  async function commit(nextItems, change) {
+    if (persist) await persist([...nextItems.values()], change);
+    items.clear();
+    for (const [id,item] of nextItems) items.set(id,item);
   }
 
   return Object.freeze({
@@ -73,39 +84,40 @@ export function createConversationStore({ records=[], clock=() => new Date().toI
       }
       return values;
     },
-    async save(record) {
-      if (!isConversationRecord(record)) throw new TypeError('Valid conversation record required');
-      const normalized = createConversationRecord(record);
-      const next = new Map(items);
-      next.set(normalized.id, normalized);
-      await commit(next);
-      items.clear();
-      for (const [id,item] of next) items.set(id,item);
-      return normalized;
+    save(record) {
+      return mutate(async () => {
+        if (!isConversationRecord(record)) throw new TypeError('Valid conversation record required');
+        const normalized = createConversationRecord(record);
+        const next = new Map(items);
+        next.set(normalized.id, normalized);
+        await commit(next,{type:'upsert',record:normalized});
+        return normalized;
+      });
     },
-    async delete(id) {
-      if (!items.has(id)) return false;
-      const next = new Map(items);
-      next.delete(id);
-      await commit(next);
-      items.clear();
-      for (const [key,item] of next) items.set(key,item);
-      return true;
+    delete(id) {
+      return mutate(async () => {
+        if (!items.has(id)) return false;
+        const next = new Map(items);
+        next.delete(id);
+        await commit(next,{type:'delete',id});
+        return true;
+      });
     },
-    async clear() {
-      const count = items.size;
-      await commit(new Map());
-      items.clear();
-      return count;
+    clear() {
+      return mutate(async () => {
+        const count = items.size;
+        await commit(new Map(),{type:'clear'});
+        return count;
+      });
     },
-    async pruneBefore(timestamp) {
-      const boundary = validTimestamp(timestamp, 'timestamp');
-      const next = new Map([...items].filter(([,item]) => item.updatedAt >= boundary));
-      const removed = items.size - next.size;
-      await commit(next);
-      items.clear();
-      for (const [id,item] of next) items.set(id,item);
-      return removed;
+    pruneBefore(timestamp) {
+      return mutate(async () => {
+        const boundary = validTimestamp(timestamp, 'timestamp');
+        const next = new Map([...items].filter(([,item]) => item.updatedAt >= boundary));
+        const removed = items.size - next.size;
+        await commit(next,{type:'replace',records:[...next.values()]});
+        return removed;
+      });
     },
     export() {
       return Object.freeze({
@@ -119,6 +131,7 @@ export function createConversationStore({ records=[], clock=() => new Date().toI
 
 export function createFileConversationStore({ path } = {}) {
   path = required(path, 'path');
+  const journalPath = path + '.ndjson';
   return Object.freeze({
     async load({ clock=() => new Date().toISOString() } = {}) {
       let parsed;
@@ -130,10 +143,36 @@ export function createFileConversationStore({ path } = {}) {
       if (!parsed || parsed.schema !== 'nexus.conversation-store.v1' || !Array.isArray(parsed.records)) {
         throw new Error('Unsupported conversation store schema');
       }
-      const writeRecords = async records => {
+      const recovered = new Map(parsed.records.map(record => {
+        if (!isConversationRecord(record)) throw new Error('Invalid conversation record in snapshot');
+        return [record.id,createConversationRecord(record)];
+      }));
+      let journalText = '';
+      try { journalText = await fs.readFile(journalPath,'utf8'); }
+      catch (error) { if (error?.code !== 'ENOENT') throw error; }
+      let journalEntries = 0;
+      for (const [index,line] of journalText.split('\n').entries()) {
+        if (!line.trim()) continue;
+        let event;
+        try { event = JSON.parse(line); }
+        catch { throw new Error('Conversation journal is corrupt at line ' + (index + 1)); }
+        if (!event || event.schema !== EVENT_SCHEMA || typeof event.type !== 'string') {
+          throw new Error('Unsupported conversation journal event at line ' + (index + 1));
+        }
+        if (event.type === 'upsert' && isConversationRecord(event.record)) recovered.set(event.record.id,createConversationRecord(event.record));
+        else if (event.type === 'delete' && typeof event.id === 'string') recovered.delete(event.id);
+        else if (event.type === 'clear') recovered.clear();
+        else if (event.type === 'replace' && Array.isArray(event.records) && event.records.every(isConversationRecord)) {
+          recovered.clear();
+          for (const record of event.records) recovered.set(record.id,createConversationRecord(record));
+        } else throw new Error('Invalid conversation journal event at line ' + (index + 1));
+        journalEntries += 1;
+      }
+
+      const atomicSnapshot = async records => {
         const directory = dirname(path);
         const temporary = join(directory, '.' + basename(path) + '.' + process.pid + '.tmp');
-        await fs.mkdir(directory,{recursive:true});
+        await fs.mkdir(directory,{recursive:true,mode:0o700});
         try {
           await fs.writeFile(temporary,JSON.stringify({
             schema:'nexus.conversation-store.v1',
@@ -146,7 +185,42 @@ export function createFileConversationStore({ path } = {}) {
           throw error;
         }
       };
-      return createConversationStore({records:parsed.records,clock,persist:writeRecords});
+
+      let persisted = new Map(recovered);
+      let persistTail = Promise.resolve();
+      const writeEvent = (records,change) => {
+        const operation = persistTail.then(async () => {
+          if (!change || !['upsert','delete','clear','replace'].includes(change.type)) {
+            await atomicSnapshot(records);
+            persisted = new Map(records.map(record => [record.id,record]));
+            const handle = await fs.open(journalPath,'w',0o600);
+            await handle.close();
+            journalEntries = 0;
+            return;
+          }
+          const event = {schema:EVENT_SCHEMA,recordedAt:validTimestamp(clock(),'clock'),...change};
+          await fs.mkdir(dirname(journalPath),{recursive:true,mode:0o700});
+          const handle = await fs.open(journalPath,'a',0o600);
+          try {
+            await handle.writeFile(JSON.stringify(event)+'\n','utf8');
+            await handle.sync();
+          } finally { await handle.close(); }
+          if (change.type === 'upsert') persisted.set(change.record.id,change.record);
+          else if (change.type === 'delete') persisted.delete(change.id);
+          else if (change.type === 'clear') persisted.clear();
+          else if (change.type === 'replace') persisted = new Map(change.records.map(record => [record.id,record]));
+          journalEntries += 1;
+          if (journalEntries >= COMPACT_AFTER_EVENTS) {
+            await atomicSnapshot([...persisted.values()]);
+            const truncate = await fs.open(journalPath,'w',0o600);
+            try { await truncate.sync(); } finally { await truncate.close(); }
+            journalEntries = 0;
+          }
+        });
+        persistTail = operation.catch(() => {});
+        return operation;
+      };
+      return createConversationStore({records:[...recovered.values()],clock,persist:writeEvent});
     }
   });
 }
