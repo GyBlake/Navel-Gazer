@@ -3,3 +3,6 @@
 
 /* Profile layout */
 .profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.profile-grid label{display:flex;flex-direction:column;gap:7px;font-size:11px;color:#c6d3c5}.profile-fieldset{border:1px solid var(--line);border-radius:6px;padding:12px;margin:8px 0}.profile-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.profile-checks label{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}.profile-checks input{width:auto;accent-color:var(--green)}@media(max-width:620px){.profile-grid,.profile-checks{grid-template-columns:1fr}}
+
+
+.mcp-tool{display:grid;gap:.55rem;padding:1rem 0;border-top:1px solid var(--line);}.mcp-tool p{margin:.1rem 0 .35rem;overflow-wrap:anywhere}.mcp-grant{display:flex;align-items:center;gap:.5rem;font-size:.88rem;color:var(--text-muted)}.mcp-grant input{width:auto;accent-color:var(--accent)}.mcp-tool .secondary-button{justify-self:start}.memory-card h4{margin:.8rem 0 .25rem}.memory-card .danger{color:var(--danger)}
