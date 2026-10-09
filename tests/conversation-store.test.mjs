@@ -34,9 +34,9 @@ test('file conversation store atomically persists with restrictive file mode and
     const adapter=createFileConversationStore({path});
     const store=await adapter.load({clock:()=>now});
     await store.save(record('saved'));
-    const parsed=JSON.parse(await readFile(path,'utf8'));
-    assert.equal(parsed.schema,'nexus.conversation-store.v1');
-    assert.equal(parsed.records[0].id,'saved');
+    const journal=await readFile(path+'.ndjson','utf8');
+    assert.match(journal, /nexus.conversation-event.v1/);
+    assert.match(journal, /\"type\":\"upsert\"/);
     const reloaded=await adapter.load({clock:()=>now});
     assert.equal(reloaded.get('saved').messages[0].content,'hello');
   } finally {
@@ -73,4 +73,31 @@ test('failed model request still durably records the submitted user message', as
   });
   await assert.rejects(session.send('keep this request'));
   assert.deepEqual(store.get('failed-send').messages,[{role:'user',content:'keep this request'}]);
+});
+
+test('append-only conversation journal replays updates and deletion tombstones', async () => {
+  const dir=await mkdtemp(join(tmpdir(),'navel-gazer-journal-'));
+  const path=join(dir,'sessions.json');
+  try {
+    const adapter=createFileConversationStore({path});
+    const store=await adapter.load({clock:()=>now});
+    await store.save(record('one'));
+    await store.save(createConversationRecord({id:'one',agentId:'persist-agent',createdAt:now,updatedAt:'2026-10-08T12:01:00.000Z',messages:[{role:'user',content:'updated'}]}));
+    await store.save(record('two'));
+    await store.delete('one');
+    const recovered=await adapter.load({clock:()=>now});
+    assert.equal(recovered.get('one'),undefined);
+    assert.equal(recovered.get('two').messages[0].content,'hello');
+  } finally { await rm(dir,{recursive:true,force:true}); }
+});
+
+test('conversation mutations serialize to avoid lost updates under concurrent saves', async () => {
+  const dir=await mkdtemp(join(tmpdir(),'navel-gazer-concurrent-'));
+  const path=join(dir,'sessions.json');
+  try {
+    const store=await createFileConversationStore({path}).load({clock:()=>now});
+    await Promise.all(Array.from({length:12},(_,i)=>store.save(record('c'+i))));
+    const recovered=await createFileConversationStore({path}).load({clock:()=>now});
+    assert.equal(recovered.list().length,12);
+  } finally { await rm(dir,{recursive:true,force:true}); }
 });

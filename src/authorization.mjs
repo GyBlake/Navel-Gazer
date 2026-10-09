@@ -1,3 +1,6 @@
+const decisionCaches = new WeakMap();
+const MAX_CACHED_DECISIONS = 2048;
+
 function matches(ruleValue, actual) {
   return ruleValue === '*' || ruleValue === actual;
 }
@@ -19,9 +22,27 @@ export function createAuthorizationPolicy({ defaultEffect='DENY', rules=[] } = {
 export function authorize(policy, { subject, resource, action } = {}) {
   if (!policy || policy.schema !== 'nexus.authorization.v1') throw new TypeError('Nexus authorization policy required');
   if (![subject,resource,action].every(v => typeof v === 'string' && v.length)) throw new TypeError('subject, resource, and action are required');
-  const matchesForDecision = policy.rules.filter(rule =>
-    matches(rule.subject,subject) && matches(rule.resource,resource) && matches(rule.action,action)
-  );
-  const decision = matchesForDecision.at(-1);
-  return decision?.effect ?? policy.defaultEffect;
+  let cache = decisionCaches.get(policy);
+  if (!cache) {
+    cache = new Map();
+    decisionCaches.set(policy, cache);
+  }
+  const key = JSON.stringify([subject,resource,action]);
+  if (cache.has(key)) {
+    const result = cache.get(key);
+    cache.delete(key);
+    cache.set(key,result);
+    return result;
+  }
+  let result = policy.defaultEffect;
+  for (let i=policy.rules.length-1;i>=0;i--) {
+    const rule=policy.rules[i];
+    if (matches(rule.subject,subject) && matches(rule.resource,resource) && matches(rule.action,action)) {
+      result=rule.effect;
+      break;
+    }
+  }
+  cache.set(key,result);
+  if (cache.size > MAX_CACHED_DECISIONS) cache.delete(cache.keys().next().value);
+  return result;
 }
