@@ -86,3 +86,19 @@ test('MCP audit API returns bounded, empty audit history before any tool call',a
     assert.deepEqual(payload.records,[]);
   });
 });
+
+test('model proposal endpoint never proceeds without an authorized connected tool',async()=>{
+  await withApp(async base=>{
+    const response=await fetch(base+'/api/mcp/propose',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({prompt:'Please inspect my notes'})});
+    assert.equal(response.status,409);
+    const payload=await response.json();
+    assert.match(payload.error,/authorize at least one tool/);
+  });
+});
+
+test('model proposal endpoint rejects empty prompts',async()=>{
+  await withApp(async base=>{
+    const response=await fetch(base+'/api/mcp/propose',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({prompt:' '})});
+    assert.equal(response.status,400);
+  });
+});

@@ -93,6 +93,14 @@
       </section>
       <section id="mcp-view" class="view panel-view" hidden>
         <div class="panel-intro"><p class="eyebrow">GOVERNED TOOL ACCESS</p><h2>Tools on <em>your terms.</em></h2><p>MCP servers run only after you explicitly connect. Each tool starts denied and requires its own approval. Tool descriptions and results are untrusted data.</p></div>
+        <form id="mcp-proposal-form" class="settings-form">
+          <h3>Ask the local model to propose a tool</h3>
+          <label for="mcp-proposal-prompt">What would you like help with?</label>
+          <textarea id="mcp-proposal-prompt" rows="3" maxlength="12000" placeholder="Describe the task. The model may suggest calls to tools you have already authorized." required></textarea>
+          <p class="fineprint">The model can propose calls only to connected, explicitly authorized tools. Proposals never execute automatically. Review each server, tool, and argument set before execution.</p>
+          <button class="primary-button" type="submit">Generate proposals</button>
+        </form>
+        <div id="mcp-proposal-list" class="memory-list"><p class="muted">No proposals yet.</p></div>
         <form id="mcp-server-form" class="settings-form">
           <h3>Add a local MCP server</h3>
           <label for="mcp-name">Display name</label><input id="mcp-name" maxlength="80" required placeholder="Example: Local notes">

@@ -14,6 +14,13 @@ A later model catalog should contain verified runtime compatibility, license, qu
 
 The current profile can record that a user wants MCP-compatible or custom tools, but this preference does **not** establish a connection. The current desktop app remains local-only and has no general-purpose MCP connection manager yet.
 
+The local model can now propose tool calls without receiving execution authority:
+- A proposal request is sent to the configured local Ollama model, with only tools that are connected and already authorized.
+- The endpoint returns structured proposals only. It never invokes a tool.
+- Each proposal is reviewed by the user and passed through the broker's one-time challenge, live grant check, and audit path.
+- Unapproved tools are not exposed to the model's proposal endpoint. The model cannot grant itself permissions or expand its tool list.
+- This is human-approved orchestration, not an autonomous tool loop. Tool descriptions and model-generated arguments remain untrusted and must be reviewed.
+
 The execution path now includes an audited broker:
 - Tool arguments are prepared into a short-lived, one-time challenge. The UI reviews the proposal and only then submits the challenge for execution.
 - The broker rechecks the live server connection, tool grant, and discovered tool-definition fingerprint at execution time.
