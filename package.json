@@ -18,7 +18,8 @@
     "desktop": "electron desktop/main.cjs",
     "dist:mac": "electron-builder --mac dmg zip",
     "dist:win": "electron-builder --win nsis",
-    "dist:linux": "electron-builder --linux AppImage deb"
+    "dist:linux": "electron-builder --linux AppImage deb",
+    "bench:runtime": "node ./benchmarks/runtime-baseline.mjs"
   },
   "license": "Apache-2.0",
   "devDependencies": {

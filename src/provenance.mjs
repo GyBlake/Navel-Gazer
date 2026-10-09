@@ -18,10 +18,27 @@ export function isProvenance(value) {
   return Boolean(value && value.schema === 'nexus.provenance.v1' && typeof value.source === 'string');
 }
 
-export function lineage(provenance) {
+/**
+ * Return a provenance chain from the supplied node to its ancestors.
+ * Reject cycles and chains beyond maxDepth rather than looping forever or
+ * allowing malformed input to consume unbounded time and memory.
+ */
+export function lineage(provenance, { maxDepth=10_000 } = {}) {
+  if (!Number.isInteger(maxDepth) || maxDepth < 1) {
+    throw new TypeError('maxDepth must be a positive integer');
+  }
+  if (provenance !== null && provenance !== undefined && !isProvenance(provenance)) {
+    throw new TypeError('Valid provenance required');
+  }
+
   const result = [];
-  let cursor = provenance;
+  const visited = new Set();
+  let cursor = provenance ?? null;
   while (cursor) {
+    if (!isProvenance(cursor)) throw new TypeError('Invalid provenance node in lineage');
+    if (visited.has(cursor)) throw new Error('Provenance lineage cycle detected');
+    if (result.length >= maxDepth) throw new RangeError('Provenance lineage exceeds maxDepth');
+    visited.add(cursor);
     result.push(cursor);
     cursor = cursor.parent ?? null;
   }
