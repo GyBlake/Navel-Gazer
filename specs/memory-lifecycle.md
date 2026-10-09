@@ -1,7 +1,7 @@
 # Memory Lifecycle and Proper Forgetting
 
 ## Status
-Policy specification. Semantic deduplication, evidence adjudication, and token-aware context budgeting are not yet implemented.
+`src/memory-lifecycle.mjs` now provides deterministic exact-duplicate suggestions and a non-mutating token-budgeted context planner. Semantic similarity detection, lifecycle-state persistence, evidence adjudication, and automatic archival remain unimplemented.
 
 ## Separate context from durable memory
 Context eviction removes material from the current model prompt; it must not delete durable records. Durable deletion is a separate governed operation with an inspectable outcome.
@@ -22,7 +22,7 @@ Use existing states where applicable: OBSERVED, PARSED, NORMALIZED, VALIDATED, D
 A model confidence score, error, failed prediction, newer timestamp, or unsupported assertion does not establish falsity. If evidence is insufficient, retain UNKNOWN or INCONCLUSIVE.
 
 ## Context budget
-A prior discussion proposed 70% of configured model context capacity as a tunable experiment, not a universal threshold or measured optimum. Reserve capacity for system instructions, safety constraints, current input, and output. Prefer tokenizer-backed counts; otherwise document the estimation method.
+The helper defaults to 70% of configured model context capacity as a tunable experiment, not a universal threshold or measured optimum. Reserve capacity for system instructions, safety constraints, current input, and output. Prefer tokenizer-backed counts; otherwise document the estimation method.
 
 When pressure occurs, select and evict working-context material before mutating durable memory. Consider task relevance, provenance, source quality, user designation, scope, recency, and supersession. Never delete durable memory solely because the prompt is full.
 
@@ -35,10 +35,12 @@ When pressure occurs, select and evict working-context material before mutating 
 - Local storage is the default; encryption at rest remains a separate security requirement.
 
 ## Rollout
-1. Add lifecycle metadata and migration.
-2. Implement exact deduplication and deterministic tests.
-3. Add supersession, archive, and quarantine operations.
-4. Detect near-duplicates without destructive automatic merges.
-5. Add token-aware context selection.
-6. Add evidence-based adjudication with versioned policy and audit records.
-7. Consider automatic deletion only after adversarial testing and user-control review.
+1. [ ] Add lifecycle metadata and migration.
+2. [x] Implement exact duplicate suggestions and deterministic tests.
+3. [ ] Add persisted supersession, archive, and quarantine operations.
+4. [ ] Detect near-duplicates without destructive automatic merges.
+5. [x] Add token-budgeted context selection separate from durable storage.
+6. [ ] Add evidence-based adjudication with versioned policy and audit records.
+7. [ ] Consider automatic durable removal only after adversarial testing and user-control review.
+
+The current token estimator is a conservative character-based fallback, not a model tokenizer. Supply a tokenizer-backed `tokenEstimator` when available. The planner prioritizes pinned and selected records, then supplied relevance scores and update recency; callers remain responsible for reserving capacity for instructions, current input, and output. The planner does not modify durable memory.
