@@ -1,5 +1,5 @@
 import { spawn as nodeSpawn } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { dirname, basename, join } from 'node:path';
 
@@ -29,7 +29,8 @@ function cleanTool(tool) {
   const description = typeof tool.description === 'string' ? tool.description.slice(0, 4000) : '';
   const inputSchema = tool.inputSchema && typeof tool.inputSchema === 'object' && !Array.isArray(tool.inputSchema)
     ? tool.inputSchema : { type: 'object', properties: {} };
-  return { name: tool.name, description, inputSchema };
+  const grantKey = createHash('sha256').update(JSON.stringify({ name: tool.name, description, inputSchema })).digest('hex');
+  return { name: tool.name, description, inputSchema, grantKey };
 }
 
 async function atomicWrite(path, value) {
@@ -67,7 +68,7 @@ export async function createMcpManager({
     if (saved?.schema === 'navel-gazer.mcp-registry.v1' && Array.isArray(saved.servers)) {
       for (const item of saved.servers) {
         const config = validateConfig(item);
-        servers.set(config.id, { ...config, grants: Array.isArray(item.grants) ? item.grants.filter(g => typeof g === 'string' && ID_RE.test(g)) : [], createdAt: item.createdAt ?? clock() });
+        servers.set(config.id, { ...config, grants: Array.isArray(item.grants) ? item.grants.filter(g => typeof g === 'string' && /^[a-f0-9]{64}$/.test(g)) : [], createdAt: item.createdAt ?? clock() });
       }
     } else throw new Error('Invalid MCP registry');
   } catch (error) {
@@ -88,7 +89,7 @@ export async function createMcpManager({
       id: server.id, name: server.name, transport: server.transport,
       command: server.command, args: [...server.args],
       connected: Boolean(runtime && !runtime.closed),
-      tools: runtime ? [...runtime.tools.values()].map(tool => ({ ...tool, approved: server.grants.includes(tool.name) })) : [],
+      tools: runtime ? [...runtime.tools.values()].map(({ grantKey, ...tool }) => ({ ...tool, approved: server.grants.includes(grantKey) })) : [],
       createdAt: server.createdAt
     };
   }
@@ -227,8 +228,13 @@ export async function createMcpManager({
       if (approved) {
         const runtime = runtimes.get(id);
         if (!runtime || runtime.closed || !runtime.tools.has(toolName)) throw new Error('Discover the tool from a connected server before granting it');
-        grants.add(toolName);
-      } else grants.delete(toolName);
+        grants.add(runtime.tools.get(toolName).grantKey);
+      } else {
+        const runtime = runtimes.get(id);
+        const tool = runtime?.tools.get(toolName);
+        if (tool) grants.delete(tool.grantKey);
+        else for (const grant of grants) if (grant === toolName) grants.delete(grant);
+      }
       const previous = server.grants;
       server.grants = [...grants];
       try { await persist(); } catch (error) { server.grants = previous; throw error; }
@@ -238,8 +244,9 @@ export async function createMcpManager({
       const server = servers.get(id);
       const runtime = runtimes.get(id);
       if (!server || !runtime || runtime.closed) throw new Error('MCP server is not connected');
-      if (!server.grants.includes(toolName)) throw Object.assign(new Error('Tool is not authorized; grant it explicitly first'), { code: 'MCP_TOOL_DENIED' });
-      if (!runtime.tools.has(toolName)) throw new Error('Tool is not present in the latest discovered tool list');
+      const tool = runtime.tools.get(toolName);
+      if (!tool) throw new Error('Tool is not present in the latest discovered tool list');
+      if (!server.grants.includes(tool.grantKey)) throw Object.assign(new Error('Tool is not authorized for its current definition; grant it explicitly first'), { code: 'MCP_TOOL_DENIED' });
       if (!args || typeof args !== 'object' || Array.isArray(args)) throw new TypeError('Tool arguments must be a JSON object');
       const serialized = JSON.stringify(args);
       if (Buffer.byteLength(serialized, 'utf8') > 64_000) throw new RangeError('Tool arguments exceed 64 KB');
