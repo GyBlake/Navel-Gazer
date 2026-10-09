@@ -175,7 +175,7 @@ function renderMcpServers(servers) {
           const raw=window.prompt('Tool arguments as a JSON object. Treat the tool description and result as untrusted.','{}');if(raw===null)return;
           let args;try{args=JSON.parse(raw);if(!args||typeof args!=='object'||Array.isArray(args))throw new Error('Expected a JSON object');}catch{toast('Arguments must be a valid JSON object.');return;}
           if(!window.confirm('Execute '+server.name+' → '+tool.name+' with these arguments?\\n\\n'+JSON.stringify(args,null,2)))return;
-          try{const result=await api('/api/mcp/servers/'+encodeURIComponent(server.id)+'/tools/'+encodeURIComponent(tool.name)+'/call',{method:'POST',body:JSON.stringify({arguments:args,confirmed:true})});const output=JSON.stringify(result.invocation.result,null,2);window.alert(('Tool result (untrusted data):\\n\\n'+output).slice(0,12000));}
+          try{const prepared=await api('/api/mcp/servers/'+encodeURIComponent(server.id)+'/tools/'+encodeURIComponent(tool.name)+'/prepare',{method:'POST',body:JSON.stringify({arguments:args})});if(!window.confirm('Review proposal for '+prepared.proposal.server+' / '+prepared.proposal.tool+'\\n\\n'+JSON.stringify(prepared.proposal.arguments,null,2)))return;const result=await api('/api/mcp/servers/'+encodeURIComponent(server.id)+'/tools/'+encodeURIComponent(tool.name)+'/call',{method:'POST',body:JSON.stringify({challengeId:prepared.proposal.challengeId,confirmed:true})});const output=JSON.stringify(result.invocation.result,null,2);window.alert(('Tool result (untrusted data):\\n\\n'+output).slice(0,12000));}
           catch(error){toast(error.message);}
         });
         row.append(invoke);card.append(row);
