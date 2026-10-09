@@ -61,3 +61,19 @@ test('personal model profile preferences are validated and persisted with local 
     assert.equal(invalid.status,400);
   });
 });
+
+test('MCP registry requires explicit confirmation and does not launch servers on registration',async()=>{
+  await withApp(async base=>{
+    const headers={'content-type':'application/json'};
+    const denied=await fetch(base+'/api/mcp/servers',{method:'POST',headers,body:JSON.stringify({name:'Local tool',command:'/trusted/tool',args:[]})});
+    assert.equal(denied.status,400);
+    const added=await fetch(base+'/api/mcp/servers',{method:'POST',headers,body:JSON.stringify({name:'Local tool',command:'/trusted/tool',args:[],confirmed:true})});
+    assert.equal(added.status,201);
+    const payload=await added.json();
+    assert.equal(payload.server.connected,false);
+    assert.deepEqual(payload.server.tools,[]);
+    const listed=await (await fetch(base+'/api/mcp/servers')).json();
+    assert.equal(listed.servers.length,1);
+    assert.equal(listed.servers[0].id,payload.server.id);
+  });
+});
