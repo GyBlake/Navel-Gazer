@@ -53,7 +53,7 @@ export async function createMcpExecutionBroker({ manager, auditPath, clock = () 
     if (error?.code !== 'ENOENT') throw new Error('MCP audit log is invalid');
   }
 
-  async function audit(type, metadata) {
+  async function writeAudit(type, metadata) {
     const timestamp = clock();
     const evidence = createEvidence({
       source: 'navel-gazer.mcp-broker',
@@ -90,6 +90,13 @@ export async function createMcpExecutionBroker({ manager, auditPath, clock = () 
     }
     events.append(event);
     return record;
+  }
+
+  let auditQueue = Promise.resolve();
+  async function audit(type, metadata) {
+    const operation = auditQueue.then(() => writeAudit(type, metadata));
+    auditQueue = operation.catch(() => {});
+    return operation;
   }
 
   function requireApprovedTool(serverId, toolName) {
