@@ -94,10 +94,10 @@ export async function runParallelStack({
     const timeoutPromise = new Promise((_, reject) => { timeoutReject = reject; });
     const abortPromise = new Promise((_, reject) => { abortReject = reject; });
     const onAbort = () => {
-      controller.abort(signal?.reason);
       const error = new Error('Stack execution cancelled');
       error.code = 'STACK_CANCELLED';
       abortReject(error);
+      controller.abort(signal?.reason);
     };
     if (signal?.aborted) onAbort();
     else signal?.addEventListener('abort', onAbort, { once:true });
@@ -105,8 +105,8 @@ export async function runParallelStack({
       timer = setTimeout(() => {
         const error = new Error('Task timed out after ' + taskTimeoutMs + ' ms');
         error.code = 'STACK_TASK_TIMEOUT';
-        controller.abort(error);
         timeoutReject(error);
+        controller.abort(error);
       }, taskTimeoutMs);
     }
     const dependencyResults = Object.freeze(Object.fromEntries(task.dependencies.map(id => [id, states.get(id)])));
