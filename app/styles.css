@@ -6,3 +6,4 @@
 
 
 .mcp-tool{display:grid;gap:.55rem;padding:1rem 0;border-top:1px solid var(--line);}.mcp-tool p{margin:.1rem 0 .35rem;overflow-wrap:anywhere}.mcp-grant{display:flex;align-items:center;gap:.5rem;font-size:.88rem;color:var(--text-muted)}.mcp-grant input{width:auto;accent-color:var(--accent)}.mcp-tool .secondary-button{justify-self:start}.memory-card h4{margin:.8rem 0 .25rem}.memory-card .danger{color:var(--danger)}
+.mcp-proposal-args{white-space:pre-wrap;overflow-wrap:anywhere;max-height:18rem;overflow:auto;padding:.8rem;border:1px solid var(--line);border-radius:.6rem;font-size:.82rem;background:var(--surface-muted,transparent)}
