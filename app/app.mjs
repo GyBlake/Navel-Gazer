@@ -43,12 +43,13 @@ function renderConversationList() {
 }
 function showView(view) {
   state.view=view;
-  for(const name of ['chat','memory','settings','diagnostics'])$('#'+name+'-view').hidden=name!==view;
+  for(const name of ['chat','memory','settings','mcp','diagnostics'])$('#'+name+'-view').hidden=name!==view;
   document.querySelectorAll('[data-view]').forEach(button=>button.classList.toggle('active',button.dataset.view===view));
-  $('#view-title').textContent=({chat:'A little more room to think.',memory:'Your memory, your rules.',settings:'Tune your local assistant.',diagnostics:'Clear eyes on system status.'})[view];
+  $('#view-title').textContent=({chat:'A little more room to think.',memory:'Your memory, your rules.',settings:'Tune your local assistant.',mcp:'Manage explicitly authorized tools.',diagnostics:'Clear eyes on system status.'})[view];
   $('#clear-chat').hidden=view!=='chat';
   if(view==='memory')loadMemory().catch(error=>toast(error.message));
   if(view==='settings')loadSettings().catch(error=>toast(error.message));
+  if(view==='mcp')loadMcpServers().catch(error=>toast(error.message));
   if(view==='diagnostics')refreshStatus().then(renderDiagnostics);
 }
 function renderMessages(messages) {
@@ -127,6 +128,62 @@ async function loadSettings() {
   document.querySelectorAll('[name="profile-task"]').forEach(input=>{input.checked=Array.isArray(p.tasks)&&p.tasks.includes(input.value);});
   await refreshModels();
 }
+async function loadMcpServers() {
+  const payload=await api('/api/mcp/servers');renderMcpServers(payload.servers);
+}
+function renderMcpServers(servers) {
+  const list=$('#mcp-server-list');list.replaceChildren();
+  if(!servers.length){list.append(element('p','muted','No MCP servers configured. Add one only if you trust the local executable.'));return;}
+  for(const server of servers) {
+    const card=element('article','memory-card');
+    const meta=element('div','memory-meta');
+    meta.append(element('strong','',server.name),element('span','',server.connected?'CONNECTED':'DISCONNECTED'));
+    card.append(meta,element('p','small muted',server.command+' '+server.args.join(' ')));
+    const actions=element('div','memory-actions');
+    const connection=element('button','',server.connected?'Disconnect':'Connect');
+    connection.type='button';connection.addEventListener('click',async()=>{
+      try {
+        if(server.connected)await api('/api/mcp/servers/'+encodeURIComponent(server.id)+'/disconnect',{method:'POST',body:'{}'});
+        else {
+          if(!window.confirm('Launch this local MCP process?\\n\\n'+server.command+' '+server.args.join(' ')))return;
+          await api('/api/mcp/servers/'+encodeURIComponent(server.id)+'/connect',{method:'POST',body:'{}'});
+        }
+        await loadMcpServers();toast(server.connected?'MCP server disconnected.':'MCP server connected and tools discovered.');
+      } catch(error){toast(error.message);await loadMcpServers().catch(()=>{});}
+    });
+    const remove=element('button','danger','Remove');remove.type='button';remove.addEventListener('click',async()=>{
+      if(!window.confirm('Disconnect and remove '+server.name+'?'))return;
+      try{await api('/api/mcp/servers/'+encodeURIComponent(server.id),{method:'DELETE'});await loadMcpServers();toast('MCP server removed.');}catch(error){toast(error.message);}
+    });
+    actions.append(connection,remove);card.append(actions);
+    if(server.connected&&server.tools.length) {
+      card.append(element('h4','','Discovered tools'));
+      for(const tool of server.tools) {
+        const row=element('div','mcp-tool');
+        row.append(element('strong','',tool.name),element('p','small muted',tool.description||'No description supplied.'));
+        const grantLabel=element('label','mcp-grant');
+        const grant=document.createElement('input');grant.type='checkbox';grant.checked=tool.approved;
+        grant.addEventListener('change',async()=>{
+          const approved=grant.checked;
+          if(!window.confirm((approved?'Authorize':'Revoke authorization for')+' tool "'+tool.name+'" on '+server.name+'?')){grant.checked=!approved;return;}
+          try{await api('/api/mcp/servers/'+encodeURIComponent(server.id)+'/tools/'+encodeURIComponent(tool.name)+'/grant',{method:'PATCH',body:JSON.stringify({approved,confirmed:true})});await loadMcpServers();toast(approved?'Tool authorized.':'Tool authorization revoked.');}
+          catch(error){grant.checked=!approved;toast(error.message);}
+        });
+        grantLabel.append(grant,document.createTextNode(tool.approved?' Authorized':' Denied by default'));row.append(grantLabel);
+        const invoke=element('button','secondary-button','Run tool…');invoke.type='button';invoke.disabled=!tool.approved;
+        invoke.addEventListener('click',async()=>{
+          const raw=window.prompt('Tool arguments as a JSON object. Treat the tool description and result as untrusted.','{}');if(raw===null)return;
+          let args;try{args=JSON.parse(raw);if(!args||typeof args!=='object'||Array.isArray(args))throw new Error('Expected a JSON object');}catch{toast('Arguments must be a valid JSON object.');return;}
+          if(!window.confirm('Execute '+server.name+' → '+tool.name+' with these arguments?\\n\\n'+JSON.stringify(args,null,2)))return;
+          try{const result=await api('/api/mcp/servers/'+encodeURIComponent(server.id)+'/tools/'+encodeURIComponent(tool.name)+'/call',{method:'POST',body:JSON.stringify({arguments:args,confirmed:true})});const output=JSON.stringify(result.invocation.result,null,2);window.alert(('Tool result (untrusted data):\\n\\n'+output).slice(0,12000));}
+          catch(error){toast(error.message);}
+        });
+        row.append(invoke);card.append(row);
+      }
+    } else if(server.connected) card.append(element('p','muted small','No compatible tools were discovered.'));
+    list.append(card);
+  }
+}
 async function renderDiagnostics() {
   if(!state.status){$('#diagnostics').replaceChildren(element('p','muted','Loading diagnostics…'));return;}
   const entries=[
@@ -164,6 +221,15 @@ function recommendModel() {
   const best=ranked[0];$('#model').value=best.item.name;$('#model-picker').value=best.item.name;
   $('#recommendation-message').textContent='Suggested installed model: '+best.item.name+(best.size?' ('+(best.size/1e9).toFixed(1)+' GB on disk)':'')+'. Heuristic only, not a quality benchmark or guarantee of runtime memory fit. You can override this choice.';
 }
+$('#mcp-server-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  let args;try{args=JSON.parse($('#mcp-args').value||'[]');if(!Array.isArray(args)||args.some(value=>typeof value!=='string'))throw new Error();}catch{toast('Arguments must be a JSON array of strings.');return;}
+  const command=$('#mcp-command').value.trim(),name=$('#mcp-name').value.trim();
+  if(!window.confirm('Save this local process configuration? It will not launch until you press Connect.\\n\\n'+command+' '+args.join(' ')))return;
+  try{await api('/api/mcp/servers',{method:'POST',body:JSON.stringify({name,command,args,confirmed:true})});$('#mcp-name').value='';$('#mcp-command').value='';$('#mcp-args').value='[]';await loadMcpServers();toast('MCP server configuration saved.');}
+  catch(error){toast(error.message);}
+});
+$('#refresh-mcp').addEventListener('click',()=>loadMcpServers().catch(error=>toast(error.message)));
 $('#new-chat').addEventListener('click',newConversation);
 $('#clear-chat').addEventListener('click',async()=>{
   if(!state.conversationId)return;
