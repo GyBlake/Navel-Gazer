@@ -18,9 +18,9 @@ This roadmap covers the next layer above the existing local-first governed runti
 
 ## Phase 3: Memory lifecycle
 - [ ] Add lifecycle metadata and migration.
-- [ ] Implement exact deduplication with provenance preservation.
+- [x] Add deterministic exact-duplicate suggestions that preserve source records; automatic merge is not performed.
 - [ ] Add supersession, archival, quarantine, and adjudication records.
-- [ ] Add token-aware context selection, separate from durable deletion.
+- [x] Add token-budgeted context selection, separate from durable record mutation.
 - [ ] Validate policy against contradictory, stale, adversarial, and unsupported records.
 
 ## Phase 4: Hardening and measurement
@@ -34,3 +34,6 @@ The canonical map is the source of truth. Do not hard-code a 15-node limit or re
 
 
 The current runner is a first in-process primitive. It does not yet bind canonical map nodes to workers, enforce per-node concurrency policy, persist task state, or provide process isolation.
+
+
+Memory planning currently uses a conservative character-based token estimate by default. A tokenizer-backed estimator should be supplied for accurate model-specific budgeting. Near-duplicate detection, persisted lifecycle state, and evidence-based adjudication remain pending.
