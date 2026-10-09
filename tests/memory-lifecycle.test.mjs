@@ -33,18 +33,18 @@ test('context budget is configurable and reserves capacity', () => {
 test('context planner ranks pinned, selected, and relevant records without mutating durable memory', () => {
   const records = [
     {id:'low',content:'12345678'},
-    {id:'selected',content:'abcd'},
-    {id:'pinned',content:'xy'},
+    {id:'selected',content:'s'},
+    {id:'pinned',content:'x'},
     {id:'relevant',content:'1234'}
   ];
   const plan = planMemoryContext({
-    records, tokenBudget:3, selectedIds:['selected'], pinnedIds:['pinned'],
+    records, tokenBudget:2, selectedIds:['selected'], pinnedIds:['pinned'],
     relevanceScores:{relevant:100},
     tokenEstimator:text => text.length
   });
   assert.deepEqual(plan.included.map(item => item.id),['pinned','selected']);
   assert.deepEqual(plan.skipped.map(item => item.id),['relevant','low']);
-  assert.equal(plan.usedTokens,3);
+  assert.equal(plan.usedTokens,2);
   assert.equal(plan.durableRecordsMutated,false);
   assert.equal(records.length,4);
 });
