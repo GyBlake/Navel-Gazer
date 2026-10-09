@@ -77,3 +77,12 @@ test('MCP registry requires explicit confirmation and does not launch servers on
     assert.equal(listed.servers[0].id,payload.server.id);
   });
 });
+
+test('MCP audit API returns bounded, empty audit history before any tool call',async()=>{
+  await withApp(async base=>{
+    const response=await fetch(base+'/api/mcp/audit?limit=20');
+    assert.equal(response.status,200);
+    const payload=await response.json();
+    assert.deepEqual(payload.records,[]);
+  });
+});
