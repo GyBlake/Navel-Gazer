@@ -178,6 +178,7 @@ export async function createMcpExecutionBroker({ manager, auditPath, clock = () 
         });
       } catch (error) {
         error.executed = true;
+        error.message = 'Tool execution completed, but the completion audit could not be persisted. Verify the tool state before retrying.';
         throw error;
       }
       return { ...invocation, auditRecorded: true };
