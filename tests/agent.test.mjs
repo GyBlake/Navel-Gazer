@@ -63,3 +63,18 @@ test('agent mount delegates to the selected provider', async () => {
   const result=await mount.chat({messages:[]});
   assert.equal(result.content,'Mounted');
 });
+
+test('Ollama provider forwards tool schemas and returns proposals without executing them', async()=>{
+  let requestBody;
+  const fetchImpl=async (_url,options)=>{
+    requestBody=JSON.parse(options.body);
+    return {ok:true,status:200,async json(){return {model:'qwen3:8b',message:{content:'I propose a lookup.',tool_calls:[{function:{name:'mcp_tool_0',arguments:{query:'example'}}}]}};}};
+  };
+  const profile=createAgentProfile({id:'tool-proposal',name:'Proposal Assistant'});
+  const provider=createOllamaProvider({fetchImpl,timeoutMs:1000});
+  const tools=[{type:'function',function:{name:'mcp_tool_0',description:'Lookup a record',parameters:{type:'object',properties:{query:{type:'string'}}}}}];
+  const result=await provider.chat({profile,messages:[{role:'user',content:'Find a record'}],tools});
+  assert.deepEqual(requestBody.tools,tools);
+  assert.equal(result.content,'I propose a lookup.');
+  assert.deepEqual(result.toolCalls,[{name:'mcp_tool_0',arguments:{query:'example'}}]);
+});
