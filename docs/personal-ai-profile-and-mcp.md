@@ -14,8 +14,16 @@ A later model catalog should contain verified runtime compatibility, license, qu
 
 The current profile can record that a user wants MCP-compatible or custom tools, but this preference does **not** establish a connection. The current desktop app remains local-only and has no general-purpose MCP connection manager yet.
 
-The implementation target for MCP is a governed adapter layer with:
-- Explicit server configuration and transport support, with supported transports named in the UI.
+The first MCP management slice is now implemented on the feature branch:
+- A local registry persists server names, stdio command/arguments, and per-tool grants under the app data directory with owner-only file permissions where supported.
+- Registering a server does not launch it. The user must explicitly press Connect.
+- The stdio adapter launches without a shell, uses a restricted environment, applies request timeouts and message/output bounds, and discovers tools through MCP JSON-RPC.
+- Each discovered tool is denied by default. Grants are per server/tool definition, persisted, and individually revocable. A change to the discovered name, description, or input schema invalidates the previous grant. Every tool invocation requires a separate user confirmation in the UI.
+- Tool descriptions and outputs are labeled untrusted; tool results are not automatically injected into model context.
+- The current slice supports **stdio tools only**. HTTP/SSE transports, MCP resources/prompts, credential management, model-initiated tool loops, and sandboxing of server code are not implemented. Adding a server launches arbitrary local code when the user explicitly connects it, so only configure commands you trust.
+
+The broader implementation target for MCP remains a governed adapter layer with:
+- Explicit server configuration and transport support, with supported transports named in the UI. (The current implementation supports stdio only.)
 - User-visible server identity, available tools/resources/prompts, connection health, and provenance.
 - Least-privilege per-server and per-tool grants; deny by default.
 - Explicit approval for consequential actions, with revocation and disconnect controls.
