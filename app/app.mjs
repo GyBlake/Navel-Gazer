@@ -187,10 +187,14 @@ $('#clear-memory').addEventListener('click',async()=>{
 $('#settings-form').addEventListener('submit',async event=>{
   event.preventDefault();
   try {
-    const payload=await api('/api/settings',{method:'POST',body:JSON.stringify({endpoint:$('#endpoint').value,model:$('#model').value})});
-    state.settings=payload;$('#settings-message').textContent='Settings saved. Local-only mode remains enforced.';await refreshStatus();toast('Settings saved.');
+    const profile={platform:$('#profile-platform').value,ramGb:$('#profile-ram').value==='unknown'?'unknown':Number($('#profile-ram').value),
+      priority:$('#profile-priority').value,tasks:[...document.querySelectorAll('[name="profile-task"]:checked')].map(input=>input.value),toolsPreference:$('#profile-tools').value};
+    const payload=await api('/api/settings',{method:'POST',body:JSON.stringify({endpoint:$('#endpoint').value,model:$('#model').value,profile})});
+    state.settings=payload;$('#settings-message').textContent='Profile saved. Local-only mode remains enforced.';await refreshStatus();toast('Profile saved.');
   } catch(error){$('#settings-message').textContent=error.message;}
 });
+$('#model-picker').addEventListener('change',()=>{if($('#model-picker').value)$('#model').value=$('#model-picker').value;});
+$('#recommend-model').addEventListener('click',recommendModel);
 $('#refresh-models').addEventListener('click',refreshModels);
 await Promise.all([refreshConversations().catch(error=>toast(error.message)),refreshStatus()]);
 showView('chat');
