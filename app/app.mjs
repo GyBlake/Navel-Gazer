@@ -4,7 +4,7 @@ const state={view:'chat',conversationId:null,conversations:[],records:[],busy:fa
 async function api(path,options={}) {
   const response=await fetch(path,{...options,headers:{...(options.body?{'content-type':'application/json'}:{}),...(options.headers??{})}});
   const payload=await response.json().catch(()=>({error:'The local app returned an invalid response'}));
-  if(!response.ok) throw new Error(payload.error||'Request failed ('+response.status+')');
+  if(!response.ok){const error=new Error(payload.error||'Request failed ('+response.status+')');error.executed=payload.executed===true;throw error;}
   return payload;
 }
 function toast(message) {

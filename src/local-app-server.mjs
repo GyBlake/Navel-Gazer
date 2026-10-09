@@ -343,7 +343,7 @@ export async function createLocalAppServer({
           (error.code==='MODEL_PROVIDER_HTTP_ERROR' || url.pathname.endsWith('/messages'))?502:
           error instanceof TypeError?400:500
         );
-        return sendJson(response,status,{error:error.message || 'Request failed',code:error.code ?? 'REQUEST_FAILED'});
+        return sendJson(response,status,{error:error.message || 'Request failed',code:error.code ?? 'REQUEST_FAILED',executed:error.executed===true});
       }
     }
 
