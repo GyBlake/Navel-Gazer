@@ -131,6 +131,33 @@ async function loadSettings() {
 async function loadMcpServers() {
   const payload=await api('/api/mcp/servers');renderMcpServers(payload.servers);
 }
+function renderModelProposals(payload) {
+  const list=$('#mcp-proposal-list');list.replaceChildren();
+  if(payload.content)list.append(element('p','',payload.content));
+  if(!payload.proposals.length){list.append(element('p','muted','The model did not propose a tool call. No action was taken.'));return;}
+  for(const proposal of payload.proposals) {
+    const card=element('article','memory-card');
+    card.append(element('strong','',proposal.serverName+' / '+proposal.toolName));
+    card.append(element('p','small muted',proposal.description||'No description supplied.'));
+    const args=element('pre','mcp-proposal-args',JSON.stringify(proposal.arguments,null,2));card.append(args);
+    card.append(element('p','small muted','PROPOSAL ONLY · NOT EXECUTED'));
+    const run=element('button','primary-button','Review and approve…');run.type='button';
+    run.addEventListener('click',async()=>{
+      run.disabled=true;
+      try {
+        const prepared=await api('/api/mcp/servers/'+encodeURIComponent(proposal.serverId)+'/tools/'+encodeURIComponent(proposal.toolName)+'/prepare',{method:'POST',body:JSON.stringify({arguments:proposal.arguments})});
+        const item=prepared.proposal;
+        const approved=window.confirm('Review proposed tool call. Nothing runs unless you approve.\\n\\nServer: '+item.server+'\\nTool: '+item.tool+'\\nDescription: '+item.description+'\\nArguments:\\n'+JSON.stringify(item.arguments,null,2)+'\\n\\nApprove this exact call?');
+        if(!approved)return;
+        const result=await api('/api/mcp/servers/'+encodeURIComponent(proposal.serverId)+'/tools/'+encodeURIComponent(proposal.toolName)+'/call',{method:'POST',body:JSON.stringify({challengeId:item.challengeId,confirmed:true})});
+        window.alert(('Tool result (untrusted data):\\n\\n'+JSON.stringify(result.invocation.result,null,2)).slice(0,12000));
+        await loadMcpAudit();
+      } catch(error){toast(error.message);}
+      finally{run.disabled=false;}
+    });
+    card.append(run);list.append(card);
+  }
+}
 async function loadMcpAudit() {
   const payload=await api('/api/mcp/audit?limit=100');
   const list=$('#mcp-audit-list');list.replaceChildren();
@@ -239,6 +266,18 @@ function recommendModel() {
   const best=ranked[0];$('#model').value=best.item.name;$('#model-picker').value=best.item.name;
   $('#recommendation-message').textContent='Suggested installed model: '+best.item.name+(best.size?' ('+(best.size/1e9).toFixed(1)+' GB on disk)':'')+'. Heuristic only, not a quality benchmark or guarantee of runtime memory fit. You can override this choice.';
 }
+$('#mcp-proposal-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  const prompt=$('#mcp-proposal-prompt').value.trim();
+  if(!prompt)return;
+  const submit=$('#mcp-proposal-form button[type="submit"]');submit.disabled=true;
+  const list=$('#mcp-proposal-list');list.replaceChildren(element('p','muted','Asking the local model for proposals…'));
+  try {
+    const payload=await api('/api/mcp/propose',{method:'POST',body:JSON.stringify({prompt})});
+    renderModelProposals(payload);
+  } catch(error){list.replaceChildren(element('p','muted',error.message));}
+  finally{submit.disabled=false;}
+});
 $('#mcp-server-form').addEventListener('submit',async event=>{
   event.preventDefault();
   let args;try{args=JSON.parse($('#mcp-args').value||'[]');if(!Array.isArray(args)||args.some(value=>typeof value!=='string'))throw new Error();}catch{toast('Arguments must be a JSON array of strings.');return;}
