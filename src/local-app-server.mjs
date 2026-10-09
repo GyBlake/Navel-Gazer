@@ -12,6 +12,23 @@ import { createFileMemoryStore, createMemoryRecord } from './memory.mjs';
 
 const DEFAULT_ENDPOINT = 'http://127.0.0.1:11434';
 const DEFAULT_MODEL = 'qwen3:8b';
+const DEFAULT_PROFILE = Object.freeze({platform:'detect',ramGb:'unknown',priority:'balanced',tasks:['everyday'],toolsPreference:'none'});
+const PROFILE_PLATFORMS = new Set(['detect','mac-intel','mac-apple','windows','linux']);
+const PROFILE_PRIORITIES = new Set(['balanced','efficient','fast','capable']);
+const PROFILE_TOOLS = new Set(['none','mcp','custom-tools']);
+const PROFILE_TASKS = new Set(['everyday','coding','reasoning','vision','writing','automation']);
+function validateProfile(value={}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError('profile must be an object');
+  const platform=value.platform??DEFAULT_PROFILE.platform, ramGb=value.ramGb??DEFAULT_PROFILE.ramGb;
+  const priority=value.priority??DEFAULT_PROFILE.priority, toolsPreference=value.toolsPreference??DEFAULT_PROFILE.toolsPreference;
+  const tasks=value.tasks??DEFAULT_PROFILE.tasks;
+  if (!PROFILE_PLATFORMS.has(platform)) throw new TypeError('Unsupported platform preference');
+  if (!(ramGb==='unknown'||[8,16,32,64].includes(ramGb))) throw new TypeError('Unsupported memory preference');
+  if (!PROFILE_PRIORITIES.has(priority)) throw new TypeError('Unsupported optimization preference');
+  if (!PROFILE_TOOLS.has(toolsPreference)) throw new TypeError('Unsupported tool preference');
+  if (!Array.isArray(tasks)||tasks.length>PROFILE_TASKS.size||tasks.some(task=>!PROFILE_TASKS.has(task))||new Set(tasks).size!==tasks.length) throw new TypeError('Unsupported task preferences');
+  return {platform,ramGb,priority,tasks:[...tasks],toolsPreference};
+}
 const STATIC_FILES = new Map([
   ['/','index.html'],
   ['/index.html','index.html'],
@@ -93,10 +110,10 @@ export async function createLocalAppServer({
   const memoryAdapter=createFileMemoryStore({path:join(dataDir,'memory.json')});
   const memoryStore=await memoryAdapter.load({clock});
   const settingsPath=join(dataDir,'settings.json');
-  let settings={endpoint:DEFAULT_ENDPOINT,model:DEFAULT_MODEL};
+  let settings={endpoint:DEFAULT_ENDPOINT,model:DEFAULT_MODEL,profile:{...DEFAULT_PROFILE,tasks:[...DEFAULT_PROFILE.tasks]}};
   try {
     const parsed=JSON.parse(await fs.readFile(settingsPath,'utf8'));
-    settings={endpoint:safeEndpoint(parsed.endpoint ?? DEFAULT_ENDPOINT),model:validateModel(parsed.model ?? DEFAULT_MODEL)};
+    settings={endpoint:safeEndpoint(parsed.endpoint ?? DEFAULT_ENDPOINT),model:validateModel(parsed.model ?? DEFAULT_MODEL),profile:validateProfile(parsed.profile??DEFAULT_PROFILE)};
   } catch (error) {
     if (error?.code !== 'ENOENT') throw new Error('Local app settings file is invalid');
   }
@@ -161,7 +178,7 @@ export async function createLocalAppServer({
         if (url.pathname === '/api/settings' && method === 'GET') return sendJson(response,200,{...settings,privacy:'LOCAL_ONLY'});
         if (url.pathname === '/api/settings' && method === 'POST') {
           const body=await readJson(request);
-          const next={endpoint:safeEndpoint(body.endpoint ?? settings.endpoint),model:validateModel(body.model ?? settings.model)};
+          const next={endpoint:safeEndpoint(body.endpoint ?? settings.endpoint),model:validateModel(body.model ?? settings.model),profile:validateProfile(body.profile??settings.profile??DEFAULT_PROFILE)};
           await atomicJson(settingsPath,next);
           settings=next;
           sessions.clear();
