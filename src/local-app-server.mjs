@@ -193,7 +193,7 @@ export async function createLocalAppServer({
           const server=await mcpManager.add(body);
           return sendJson(response,201,{server});
         }
-        const mcpMatch=url.pathname.match(/^\\/api\\/mcp\\/servers\\/([a-zA-Z0-9._-]{1,80})(?:\\/(connect|disconnect|tools\\/([a-zA-Z0-9._-]{1,80})\\/(grant|call)))?$/);
+        const mcpMatch=url.pathname.match(/^\/api\/mcp\/servers\/([a-zA-Z0-9._-]{1,80})(?:\/(connect|disconnect|tools\/([a-zA-Z0-9._-]{1,80})\/(grant|call)))?$/);
         if (mcpMatch) {
           const [,id,action,toolName,toolAction]=mcpMatch;
           if (!mcpManager.list().some(server=>server.id===id)) return sendJson(response,404,{error:'MCP server not found'});
