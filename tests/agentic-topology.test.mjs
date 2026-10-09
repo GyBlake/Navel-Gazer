@@ -61,3 +61,13 @@ test('valid dependencies and typed relationships validate without fixing node co
   topology.register({nodeId:'sensor',responsibility:'Observe inputs',implementation:'sensor'});
   assert.equal(topology.validate().nodeCount, 3);
 });
+
+test('registry revalidates objects that claim the topology schema', () => {
+  const topology = createAgenticTopology();
+  assert.throws(() => topology.register({
+    schema:'navel-gazer.topology-node.v1',
+    nodeId:'forged',
+    responsibility:'Bypass validation',
+    dependencies:'not-an-array'
+  }));
+});
