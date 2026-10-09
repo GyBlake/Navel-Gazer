@@ -49,7 +49,7 @@ function showView(view) {
   $('#clear-chat').hidden=view!=='chat';
   if(view==='memory')loadMemory().catch(error=>toast(error.message));
   if(view==='settings')loadSettings().catch(error=>toast(error.message));
-  if(view==='mcp')loadMcpServers().catch(error=>toast(error.message));
+  if(view==='mcp'){loadMcpServers().catch(error=>toast(error.message));loadMcpAudit().catch(error=>toast(error.message));}
   if(view==='diagnostics')refreshStatus().then(renderDiagnostics);
 }
 function renderMessages(messages) {
@@ -130,6 +130,25 @@ async function loadSettings() {
 }
 async function loadMcpServers() {
   const payload=await api('/api/mcp/servers');renderMcpServers(payload.servers);
+}
+async function loadMcpAudit() {
+  const payload=await api('/api/mcp/audit?limit=100');
+  const list=$('#mcp-audit-list');list.replaceChildren();
+  if(!payload.records.length){list.append(element('p','muted','No tool execution records yet.'));return;}
+  for(const record of payload.records) {
+    const card=element('article','memory-card');
+    card.append(element('strong','',record.type.replaceAll('_',' ')));
+    card.append(element('p','small muted',record.timestamp+' · '+record.subject));
+    const details=record.payload||{};
+    const summary=[];
+    if(details.argumentBytes!==undefined)summary.push('Input: '+details.argumentBytes+' bytes');
+    if(details.outputBytes!==undefined)summary.push('Output: '+details.outputBytes+' bytes');
+    if(details.errorCode)summary.push('Error: '+details.errorCode);
+    if(details.argumentDigest)summary.push('Input digest: '+details.argumentDigest.slice(0,16)+'…');
+    if(details.outputDigest)summary.push('Output digest: '+details.outputDigest.slice(0,16)+'…');
+    if(summary.length)card.append(element('p','small muted',summary.join(' · ')));
+    list.append(card);
+  }
 }
 function renderMcpServers(servers) {
   const list=$('#mcp-server-list');list.replaceChildren();
@@ -229,6 +248,7 @@ $('#mcp-server-form').addEventListener('submit',async event=>{
   catch(error){toast(error.message);}
 });
 $('#refresh-mcp').addEventListener('click',()=>loadMcpServers().catch(error=>toast(error.message)));
+$('#refresh-mcp-audit').addEventListener('click',()=>loadMcpAudit().catch(error=>toast(error.message)));
 $('#new-chat').addEventListener('click',newConversation);
 $('#clear-chat').addEventListener('click',async()=>{
   if(!state.conversationId)return;
