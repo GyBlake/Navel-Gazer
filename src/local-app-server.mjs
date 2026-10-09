@@ -294,9 +294,14 @@ export async function createLocalAppServer({
         }
         return sendJson(response,404,{error:'Route not found'});
       } catch (error) {
-        const status=error.status ?? (error.code==='MCP_TOOL_DENIED'?403:(error.code==='MCP_TIMEOUT'||error.code==='MODEL_PROVIDER_TIMEOUT')?504:
+        const status=error.status ?? (
+          error.code==='MCP_TOOL_DENIED'?403:
+          ['MCP_CHALLENGE_INVALID','MCP_CHALLENGE_EXPIRED','MCP_TOOL_CHANGED'].includes(error.code)?409:
+          error.code==='MCP_AUDIT_WRITE_FAILED'?503:
+          ['MCP_TIMEOUT','MODEL_PROVIDER_TIMEOUT'].includes(error.code)?504:
           (error.code==='MODEL_PROVIDER_HTTP_ERROR' || url.pathname.endsWith('/messages'))?502:
-          error instanceof TypeError?400:500);
+          error instanceof TypeError?400:500
+        );
         return sendJson(response,status,{error:error.message || 'Request failed',code:error.code ?? 'REQUEST_FAILED'});
       }
     }
