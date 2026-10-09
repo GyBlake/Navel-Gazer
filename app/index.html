@@ -61,14 +61,34 @@
         <div id="memory-list" class="memory-list"></div>
       </section>
       <section id="settings-view" class="view panel-view" hidden>
-        <div class="panel-intro"><p class="eyebrow">LOCAL MODEL CONFIGURATION</p><h2>Your model. <em>Your machine.</em></h2><p>Choose a model served by Ollama on this device. Remote endpoints are not accepted in local-only mode.</p></div>
+        <div class="panel-intro"><p class="eyebrow">PERSONAL AI PROFILE</p><h2>Your model. <em>Your machine.</em></h2><p>Tell Navel Gazer what matters to you. Recommendations are estimates, and you always retain the final choice.</p></div>
         <form id="settings-form" class="settings-form">
-          <label for="endpoint">Ollama endpoint</label><input id="endpoint" type="url" value="http://127.0.0.1:11434" required>
-          <label for="model">Model name</label><input id="model" type="text" value="qwen3:8b" maxlength="128" required>
-          <div class="form-row"><button id="refresh-models" class="secondary-button" type="button">Check installed models</button><button class="primary-button" type="submit">Save settings</button></div>
+          <h3>Device and priorities</h3>
+          <div class="profile-grid">
+            <label>Platform<select id="profile-platform"><option value="detect">Detect / not sure</option><option value="mac-intel">macOS · Intel</option><option value="mac-apple">macOS · Apple silicon</option><option value="windows">Windows</option><option value="linux">Linux</option></select></label>
+            <label>System memory<select id="profile-ram"><option value="unknown">Not sure</option><option value="8">8 GB or less</option><option value="16">16 GB</option><option value="32">32 GB</option><option value="64">64 GB or more</option></select></label>
+            <label>Optimize for<select id="profile-priority"><option value="balanced">Balanced</option><option value="efficient">Efficiency / lower memory</option><option value="fast">Speed</option><option value="capable">Capability / reasoning</option></select></label>
+            <label>Tool integration<select id="profile-tools"><option value="none">Chat only</option><option value="mcp">MCP-compatible tools, individually authorized</option><option value="custom-tools">Custom integrations</option></select></label>
+          </div>
+          <fieldset class="profile-fieldset"><legend>Primary tasks</legend>
+            <div class="profile-checks">
+              <label><input type="checkbox" name="profile-task" value="everyday"> Everyday assistance</label>
+              <label><input type="checkbox" name="profile-task" value="coding"> Coding and software development</label>
+              <label><input type="checkbox" name="profile-task" value="reasoning"> Complex reasoning and research</label>
+              <label><input type="checkbox" name="profile-task" value="vision"> Images and documents</label>
+              <label><input type="checkbox" name="profile-task" value="writing"> Writing and creativity</label>
+              <label><input type="checkbox" name="profile-task" value="automation"> Tool workflows</label>
+            </div>
+          </fieldset>
+          <label for="endpoint">Local Ollama endpoint</label><input id="endpoint" type="url" value="http://127.0.0.1:11434" required>
+          <label for="model-picker">Installed models</label><select id="model-picker"><option value="">Check installed models first</option></select>
+          <div class="form-row"><button id="refresh-models" class="secondary-button" type="button">Refresh installed models</button><button id="recommend-model" class="secondary-button" type="button">Recommend a fit</button></div>
+          <label for="model">Selected model name</label><input id="model" type="text" value="qwen3:8b" maxlength="128" required>
+          <p id="recommendation-message" class="inline-message" role="status">Recommendations use installed-model metadata and your stated preferences. They are guidance, not benchmark results.</p>
+          <div class="form-row"><button class="primary-button" type="submit">Save profile and model</button></div>
           <p id="settings-message" class="inline-message" role="status"></p>
         </form>
-        <div class="privacy-card"><span>◉</span><div><h3>Local-only mode is enforced</h3><p>The app accepts only loopback HTTP endpoints and makes no cloud AI requests. Changing the endpoint does not enable remote access.</p></div></div>
+        <div class="privacy-card"><span>◉</span><div><h3>Local-only mode is enforced</h3><p>This release only sends inference to a loopback Ollama endpoint. Remote providers and MCP server connections are not enabled by these preferences. MCP selection records your preference only; connections must be implemented and individually authorized before use.</p></div></div>
       </section>
       <section id="diagnostics-view" class="view panel-view" hidden>
         <div class="panel-intro"><p class="eyebrow">SYSTEM STATUS</p><h2>Know what’s <em>running.</em></h2><p>Local diagnostics to help understand the current configuration and data footprint.</p></div>
