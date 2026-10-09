@@ -1,5 +1,5 @@
 const $=selector=>document.querySelector(selector);
-const state={view:'chat',conversationId:null,conversations:[],records:[],busy:false,settings:{model:'qwen3:8b',endpoint:'http://127.0.0.1:11434'},status:null,toastTimer:null};
+const state={view:'chat',conversationId:null,conversations:[],records:[],busy:false,settings:{model:'qwen3:8b',endpoint:'http://127.0.0.1:11434',profile:{}},models:[],status:null,toastTimer:null};
 
 async function api(path,options={}) {
   const response=await fetch(path,{...options,headers:{...(options.body?{'content-type':'application/json'}:{}),...(options.headers??{})}});
@@ -121,6 +121,11 @@ function renderMemory() {
 async function loadSettings() {
   const settings=await api('/api/settings');state.settings=settings;
   $('#endpoint').value=settings.endpoint;$('#model').value=settings.model;
+  const p=settings.profile??{};
+  $('#profile-platform').value=p.platform??'detect';$('#profile-ram').value=String(p.ramGb??'unknown');
+  $('#profile-priority').value=p.priority??'balanced';$('#profile-tools').value=p.toolsPreference??'none';
+  document.querySelectorAll('[name="profile-task"]').forEach(input=>{input.checked=Array.isArray(p.tasks)&&p.tasks.includes(input.value);});
+  await refreshModels();
 }
 async function renderDiagnostics() {
   if(!state.status){$('#diagnostics').replaceChildren(element('p','muted','Loading diagnostics…'));return;}
@@ -137,12 +142,27 @@ async function renderDiagnostics() {
 }
 async function refreshModels() {
   try {
-    const payload=await api('/api/models');
-    if(!payload.connected){$('#settings-message').textContent='Ollama is not responding at this endpoint.';return;}
-    const names=payload.models.map(model=>model.name);
-    $('#settings-message').textContent=names.length?'Installed models: '+names.join(', '):'Ollama is connected, but no models were found.';
-    if(names.length&&!names.includes($('#model').value))$('#model').value=names[0];
+    const payload=await api('/api/models');state.models=payload.connected?payload.models:[];
+    const picker=$('#model-picker');picker.replaceChildren(new Option(payload.connected?'Choose an installed model…':'Ollama not responding',''));
+    for(const item of state.models)picker.append(new Option(item.name+(item.size?' · '+(item.size/1e9).toFixed(1)+' GB':''),item.name));
+    picker.value=state.models.some(item=>item.name===$('#model').value)?$('#model').value:'';
+    $('#settings-message').textContent=!payload.connected?'Ollama is not responding at this endpoint.':state.models.length?'Found '+state.models.length+' installed model(s).':'Ollama is connected, but no models were found.';
   } catch(error){$('#settings-message').textContent=error.message;}
+}
+function recommendModel() {
+  const ram=$('#profile-ram').value,priority=$('#profile-priority').value;
+  const tasks=[...document.querySelectorAll('[name="profile-task"]:checked')].map(input=>input.value);
+  if(!state.models.length){$('#recommendation-message').textContent='No installed models to compare. Install a compatible model in Ollama and refresh. Nothing is downloaded automatically.';return;}
+  const limit=ram==='8'?4.8e9:ram==='16'?9e9:ram==='32'?20e9:ram==='64'?40e9:Infinity;
+  const ranked=state.models.map(item=>{const n=item.name.toLowerCase(),size=Number(item.size)||0;let score=size&&size<=limit?4:size>limit?-8:0;
+    if(priority==='efficient')score-=size/1e10;if(priority==='capable')score+=size/1e10;if(priority==='fast')score-=size/2e10;
+    if(tasks.includes('coding')&&/(coder|code)/.test(n))score+=2;
+    if(tasks.includes('vision')&&/(vision|llava|qwen.*vl)/.test(n))score+=2;
+    if(tasks.includes('reasoning')&&/(reason|thinking|qwq|deepseek-r1)/.test(n))score+=2;
+    if(tasks.includes('everyday')&&/(instruct|qwen|llama|gemma)/.test(n))score+=1;
+    return {item,size,score};}).sort((a,b)=>b.score-a.score||a.size-b.size);
+  const best=ranked[0];$('#model').value=best.item.name;$('#model-picker').value=best.item.name;
+  $('#recommendation-message').textContent='Suggested installed model: '+best.item.name+(best.size?' ('+(best.size/1e9).toFixed(1)+' GB on disk)':'')+'. Heuristic only, not a quality benchmark or guarantee of runtime memory fit. You can override this choice.';
 }
 $('#new-chat').addEventListener('click',newConversation);
 $('#clear-chat').addEventListener('click',async()=>{
@@ -167,10 +187,14 @@ $('#clear-memory').addEventListener('click',async()=>{
 $('#settings-form').addEventListener('submit',async event=>{
   event.preventDefault();
   try {
-    const payload=await api('/api/settings',{method:'POST',body:JSON.stringify({endpoint:$('#endpoint').value,model:$('#model').value})});
-    state.settings=payload;$('#settings-message').textContent='Settings saved. Local-only mode remains enforced.';await refreshStatus();toast('Settings saved.');
+    const profile={platform:$('#profile-platform').value,ramGb:$('#profile-ram').value==='unknown'?'unknown':Number($('#profile-ram').value),
+      priority:$('#profile-priority').value,tasks:[...document.querySelectorAll('[name="profile-task"]:checked')].map(input=>input.value),toolsPreference:$('#profile-tools').value};
+    const payload=await api('/api/settings',{method:'POST',body:JSON.stringify({endpoint:$('#endpoint').value,model:$('#model').value,profile})});
+    state.settings=payload;$('#settings-message').textContent='Profile saved. Local-only mode remains enforced.';await refreshStatus();toast('Profile saved.');
   } catch(error){$('#settings-message').textContent=error.message;}
 });
+$('#model-picker').addEventListener('change',()=>{if($('#model-picker').value)$('#model').value=$('#model-picker').value;});
+$('#recommend-model').addEventListener('click',recommendModel);
 $('#refresh-models').addEventListener('click',refreshModels);
 await Promise.all([refreshConversations().catch(error=>toast(error.message)),refreshStatus()]);
 showView('chat');

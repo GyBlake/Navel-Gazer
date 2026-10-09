@@ -48,3 +48,16 @@ test('local app rejects cross-origin API requests and non-JSON writes',async()=>
     assert.equal(invalid.status,415);
   });
 });
+
+test('personal model profile preferences are validated and persisted with local settings',async()=>{
+  await withApp(async base=>{
+    const profile={platform:'windows',ramGb:16,priority:'efficient',tasks:['coding','everyday'],toolsPreference:'mcp'};
+    const saved=await fetch(base+'/api/settings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({model:'qwen3:8b',profile})});
+    assert.equal(saved.status,200);
+    assert.deepEqual((await saved.json()).profile,profile);
+    const loaded=await (await fetch(base+'/api/settings')).json();
+    assert.deepEqual(loaded.profile,profile);
+    const invalid=await fetch(base+'/api/settings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({profile:{...profile,toolsPreference:'unrestricted'}})});
+    assert.equal(invalid.status,400);
+  });
+});
