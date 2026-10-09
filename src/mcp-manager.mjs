@@ -208,7 +208,7 @@ export async function createMcpManager({
       try { await persist(); } catch (error) { servers.set(id, server); throw error; }
       return true;
     },
-    async connect,
+    connect,
     disconnect(id) { closeRuntime(id); return servers.has(id); },
     async refreshTools(id) {
       const server = servers.get(id);
