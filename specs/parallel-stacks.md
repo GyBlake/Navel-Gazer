@@ -1,7 +1,7 @@
 # Parallel Stack Orchestration
 
 ## Status
-Design contract only. The topology registry does not execute workflows.
+The initial bounded DAG runner is implemented in `src/parallel-stack.mjs`. The runner schedules callback work; it does not itself grant capabilities, enforce MCP permissions, persist audit records, or isolate processes. The supplied `execute` callback must use the governed runtime for external operations.
 
 ## Execution model
 A stack is a bounded workflow over topology nodes. Execution dependencies form a directed acyclic graph. Conceptual relationships do not automatically impose scheduling order.
@@ -31,3 +31,9 @@ Workers cannot grant capabilities or bypass authorization. Tool calls use the ex
 
 ## Acceptance criteria
 No dependency executes before prerequisites succeed. Independent branches may run concurrently within configured limits. Failed prerequisites block dependent work. Independent branches follow explicit failure policy. Every outcome remains distinguishable, and execution never implies authorization.
+
+
+## Current runner behavior
+The runner validates task IDs, dependencies, and acyclicity; executes ready tasks with bounded concurrency; passes successful dependency results to downstream tasks; blocks tasks whose prerequisites fail; supports `continue-independent` and `halt-on-failure`; accepts an AbortSignal; and can apply a per-task timeout. Cancellation is cooperative: callbacks should observe the provided signal and stop their own work. A timed-out callback that ignores cancellation may continue outside the runner's control.
+
+The runner returns structured per-task status, output/error metadata, and aggregate counts. It is an in-process execution primitive, not a distributed scheduler.
