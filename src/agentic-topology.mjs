@@ -84,7 +84,7 @@ export function createAgenticTopology({ topologyId='default', version='1.0.0', n
   if (!Array.isArray(nodes)) throw new TypeError('nodes must be an array');
   const registry = new Map();
   for (const node of nodes) {
-    const normalized = isTopologyNode(node) ? node : createTopologyNode(node);
+    const normalized = createTopologyNode(node);
     if (registry.has(normalized.nodeId)) throw new Error('Duplicate topology node: ' + normalized.nodeId);
     registry.set(normalized.nodeId, normalized);
   }
@@ -129,7 +129,7 @@ export function createAgenticTopology({ topologyId='default', version='1.0.0', n
     topologyId,
     version,
     register(node) {
-      const normalized = isTopologyNode(node) ? node : createTopologyNode(node);
+      const normalized = createTopologyNode(node);
       if (registry.has(normalized.nodeId)) throw new Error('Topology node already registered: ' + normalized.nodeId);
       registry.set(normalized.nodeId, normalized);
       return normalized;
