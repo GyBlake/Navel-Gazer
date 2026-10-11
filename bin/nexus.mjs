@@ -8,7 +8,7 @@ const command = process.argv[2] ?? 'status';
 switch (command) {
   case 'status':
     console.log(JSON.stringify({
-      name:'nexus-foundation',
+      name:'navel-gazer',
       version:'0.2.0',
       modules:['boot','state','relationship','entity','resource','interface','capability','evidence','provenance','event','authorization','runtime','sync','persistence','extensions','observability','http','ipc','agent','memory','session'],
       referenceApplication:'available'
