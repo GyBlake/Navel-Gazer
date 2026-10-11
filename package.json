@@ -1,5 +1,5 @@
 {
-  "name": "nexus-foundation",
+  "name": "navel-gazer",
   "version": "0.2.0",
   "private": false,
   "description": "Neutral public reference infrastructure for explicit resources, interfaces, lifecycles, evidence, provenance, authorization, execution, synchronization, persistence, and extensions.",
@@ -8,7 +8,8 @@
     "node": ">=24"
   },
   "bin": {
-    "nexus": "./bin/nexus.mjs"
+    "nexus": "./bin/nexus.mjs",
+    "navel-gazer": "./bin/nexus.mjs"
   },
   "scripts": {
     "test": "node --test",
