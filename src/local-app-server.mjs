@@ -291,7 +291,7 @@ export async function createLocalAppServer({
           await persistLifeGoals(next); lifeGoals=next;
           return sendJson(response,201,{goal,summary:summarizeLifeGoals(lifeGoals)});
         }
-        const lifeMilestoneMatch=url.pathname.match(/^\/api\/life\/goals\/([a-zA-Z0-9-]{1,80})\\/milestones\\/([a-zA-Z0-9-]{1,80})$/);
+        const lifeMilestoneMatch=url.pathname.match(/^\/api\/life\/goals\/([a-zA-Z0-9-]{1,80})\/milestones\/([a-zA-Z0-9-]{1,80})$/);
         if (lifeMilestoneMatch && method==='PATCH') {
           const [,goalId,milestoneId]=lifeMilestoneMatch;
           const current=lifeGoals.find(goal=>goal.id===goalId);
