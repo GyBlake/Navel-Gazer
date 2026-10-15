@@ -11,6 +11,7 @@ import { createConversationSession, restoreConversationSession } from './session
 import { createFileMemoryStore, createMemoryRecord } from './memory.mjs';
 import { createMcpManager } from './mcp-manager.mjs';
 import { createMcpExecutionBroker } from './mcp-execution-broker.mjs';
+import { createLifeGoal, confirmMilestone, summarizeLifeGoals } from './life-navigation.mjs';
 
 const DEFAULT_ENDPOINT = 'http://127.0.0.1:11434';
 const DEFAULT_MODEL = 'qwen3:8b';
@@ -35,7 +36,10 @@ const STATIC_FILES = new Map([
   ['/','index.html'],
   ['/index.html','index.html'],
   ['/styles.css','styles.css'],
-  ['/app.mjs','app.mjs']
+  ['/app.mjs','app.mjs'],
+  ['/life.html','life.html'],
+  ['/life.css','life.css'],
+  ['/life.mjs','life.mjs']
 ]);
 
 function sendJson(response, status, value) {
@@ -120,6 +124,18 @@ export async function createLocalAppServer({
     settings={endpoint:safeEndpoint(parsed.endpoint ?? DEFAULT_ENDPOINT),model:validateModel(parsed.model ?? DEFAULT_MODEL),profile:validateProfile(parsed.profile??DEFAULT_PROFILE)};
   } catch (error) {
     if (error?.code !== 'ENOENT') throw new Error('Local app settings file is invalid');
+  }
+  const lifeGoalsPath=join(dataDir,'life-goals.json');
+  let lifeGoals=[];
+  try {
+    const stored=JSON.parse(await fs.readFile(lifeGoalsPath,'utf8'));
+    if (!stored || stored.schema!=='nexus.life-goals.v1' || !Array.isArray(stored.goals)) throw new Error('Invalid schema');
+    lifeGoals=stored.goals;
+  } catch (error) {
+    if (error?.code!=='ENOENT') throw new Error('Local life-navigation data file is invalid');
+  }
+  async function persistLifeGoals(goals) {
+    await atomicJson(lifeGoalsPath,{schema:'nexus.life-goals.v1',goals});
   }
   const sessions=new Map();
 
@@ -263,6 +279,39 @@ export async function createLocalAppServer({
             return sendJson(response,200,{invocation});
           }
           return sendJson(response,405,{error:'Method not allowed'});
+        }
+        if (url.pathname === '/api/life/goals' && method === 'GET') {
+          return sendJson(response,200,{goals:lifeGoals,summary:summarizeLifeGoals(lifeGoals)});
+        }
+        if (url.pathname === '/api/life/goals' && method === 'POST') {
+          const body=await readJson(request);
+          if (body.confirmed!==true) return sendJson(response,400,{error:'Explicit user confirmation is required to create a life goal'});
+          const goal=createLifeGoal(body,{idFactory:randomUUID,clock});
+          const next=[...lifeGoals,goal];
+          await persistLifeGoals(next); lifeGoals=next;
+          return sendJson(response,201,{goal,summary:summarizeLifeGoals(lifeGoals)});
+        }
+        const lifeMilestoneMatch=url.pathname.match(/^\/api\/life\/goals\/([a-zA-Z0-9-]{1,80})\/milestones\/([a-zA-Z0-9-]{1,80})$/);
+        if (lifeMilestoneMatch && method==='PATCH') {
+          const [,goalId,milestoneId]=lifeMilestoneMatch;
+          const current=lifeGoals.find(goal=>goal.id===goalId);
+          if (!current) return sendJson(response,404,{error:'Life goal not found'});
+          const body=await readJson(request);
+          const updated=confirmMilestone(current,milestoneId,body,{clock});
+          if (!updated) return sendJson(response,404,{error:'Milestone not found'});
+          const next=lifeGoals.map(goal=>goal.id===goalId?updated:goal);
+          await persistLifeGoals(next); lifeGoals=next;
+          return sendJson(response,200,{goal:updated,summary:summarizeLifeGoals(lifeGoals)});
+        }
+        const lifeGoalMatch=url.pathname.match(/^\/api\/life\/goals\/([a-zA-Z0-9-]{1,80})$/);
+        if (lifeGoalMatch && method==='DELETE') {
+          const body=await readJson(request);
+          if (body.confirmed!==true) return sendJson(response,400,{error:'Explicit confirmation is required to delete a life goal'});
+          const goalId=lifeGoalMatch[1];
+          if (!lifeGoals.some(goal=>goal.id===goalId)) return sendJson(response,404,{error:'Life goal not found'});
+          const next=lifeGoals.filter(goal=>goal.id!==goalId);
+          await persistLifeGoals(next); lifeGoals=next;
+          return sendJson(response,200,{deleted:true,id:goalId,summary:summarizeLifeGoals(lifeGoals)});
         }
         if (url.pathname === '/api/models' && method === 'GET') return sendJson(response,200,await ollamaTags());
         if (url.pathname === '/api/conversations' && method === 'GET') {
