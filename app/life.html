@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#101714">
+  <meta name="description" content="A private, local-first life navigation and milestone workspace.">
+  <title>Life Navigation | Navel Gazer</title>
+  <link rel="stylesheet" href="/life.css">
+  <script type="module" src="/life.mjs"></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Return to Navel Gazer">◎ NAVEL GAZER <span>/ LIFE NAVIGATION</span></a>
+      <div class="local-state"><span class="dot"></span> LOCAL WORKSPACE</div>
+    </header>
+    <main>
+      <section class="hero">
+        <p class="eyebrow">DREAMCORP EXPERIENCE LAYER · PERSONAL CONTROL</p>
+        <h1>Make your next chapter <em>navigable.</em></h1>
+        <p class="intro">Turn goals you choose into practical steps. Your real life sets the direction. This workspace helps you map the route, track your own confirmations, and adjust when reality changes.</p>
+        <div class="hero-actions"><a class="secondary" href="/">← Back to assistant</a><button id="refresh" class="secondary" type="button">Refresh state ↻</button></div>
+      </section>
+      <section class="stats" aria-label="Progress summary">
+        <article class="stat"><span>ACTIVE GOALS</span><strong id="active-goals">0</strong><small>Plans still in progress</small></article>
+        <article class="stat"><span>MILESTONES</span><strong id="milestones">0 / 0</strong><small>Completed / planned</small></article>
+        <article class="stat xp"><span>EXPERIENCE POINTS</span><strong id="xp">0 XP</strong><small>10 per user-confirmed milestone</small></article>
+      </section>
+      <section class="workspace">
+        <div class="section-heading"><div><p class="eyebrow">YOUR MAP</p><h2>Goals and quests</h2></div><span id="sync-label" class="sync-label">LOCAL STATE · READY</span></div>
+        <div class="layout">
+          <section id="goal-list" class="goal-list" aria-live="polite"><p class="muted">Loading your local goals…</p></section>
+          <aside class="create-panel">
+            <p class="eyebrow">START WITH YOUR INTENTION</p>
+            <h3>Set a destination.</h3>
+            <p class="muted">Choose a real-world objective, then break it into steps small enough to act on.</p>
+            <form id="goal-form">
+              <label for="goal-title">Goal title</label>
+              <input id="goal-title" maxlength="120" placeholder="Earn a certificate" required>
+              <label for="goal-domain">Life area</label>
+              <select id="goal-domain">
+                <option value="education">Education</option><option value="career">Career</option><option value="housing">Housing</option><option value="finance">Finance</option><option value="wellbeing">Wellbeing</option><option value="personal">Personal</option>
+              </select>
+              <label for="goal-date">Target date <span>(optional)</span></label>
+              <input id="goal-date" type="date">
+              <label for="goal-description">Why this matters <span>(optional)</span></label>
+              <textarea id="goal-description" rows="3" maxlength="1000" placeholder="What would this make possible for you?"></textarea>
+              <label for="goal-milestones">First quests <span>(one per line)</span></label>
+              <textarea id="goal-milestones" rows="5" placeholder="Find the requirements&#10;Compare options&#10;Choose the next step"></textarea>
+              <button class="primary" type="submit">Create my goal <span>↗</span></button>
+              <p class="fineprint">No goal is inferred from your chats. Creating one is your choice.</p>
+            </form>
+          </aside>
+        </div>
+      </section>
+      <footer><strong>PERSON FIRST.</strong> Completion is self-confirmed unless a trusted source is explicitly connected later. XP is motivational, not a score of your worth. No external actions are taken here.</footer>
+    </main>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
