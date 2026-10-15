@@ -28,7 +28,11 @@ async function createWindow() {
 
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-navigate', (event, targetUrl) => {
-    if (targetUrl !== localUrl) event.preventDefault();
+    try {
+      if (new URL(targetUrl).origin !== new URL(localUrl).origin) event.preventDefault();
+    } catch {
+      event.preventDefault();
+    }
   });
   window.once('ready-to-show', () => window.show());
   await window.loadURL(localUrl);
