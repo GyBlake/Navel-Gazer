@@ -73,7 +73,7 @@ function render() {
     remove.type = 'button';
     remove.addEventListener('click', async () => {
       if (!window.confirm('Delete “' + goal.title + '” and its local milestone history? This cannot be undone.')) return;
-      try { await api('/api/life/goals/' + encodeURIComponent(goal.id), { method: 'DELETE' }); await load(); toast('Goal deleted from this device.'); }
+      try { await api('/api/life/goals/' + encodeURIComponent(goal.id), { method: 'DELETE', body: JSON.stringify({ confirmed: true }) }); await load(); toast('Goal deleted from this device.'); }
       catch (error) { toast(error.message); }
     });
     footer.append(remove); card.append(footer); list.append(card);
