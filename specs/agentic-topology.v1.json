@@ -1,0 +1,826 @@
+{
+  "schema": "navel-gazer.agentic-topology.v1",
+  "topologyId": "public-reference-capabilities",
+  "version": "1.0.0",
+  "provenance": {
+    "sourceId": "maintainer-reviewed-public-capability-map",
+    "sourceVersion": "1.0.0",
+    "preparedAt": "2026-10-18",
+    "method": "Public-neutral capability projection against the existing topology contract; no person-specific identities or proprietary source addresses are present.",
+    "status": "proposed-review",
+    "warning": "Node registration describes a capability interface only. It does not prove process instantiation, runtime health, provider connectivity, or authorization."
+  },
+  "nodes": [
+    {
+      "nodeId": "precedence-resolver",
+      "responsibility": "Resolve source authority, policy precedence, and declared invariants before assembly.",
+      "implementation": "validator",
+      "capabilities": [
+        "source.inspect",
+        "policy.resolve"
+      ],
+      "inputs": [
+        "candidate-sources",
+        "policy-context"
+      ],
+      "outputs": [
+        "resolved-precedence",
+        "unresolved-conflicts"
+      ],
+      "dependencies": [],
+      "relationships": [
+        {
+          "targetNodeId": "organism-coordinator",
+          "relationType": "establishes-precedence-for",
+          "direction": "outbound"
+        },
+        {
+          "targetNodeId": "source-retriever",
+          "relationType": "scopes-retrieval",
+          "direction": "outbound"
+        },
+        {
+          "targetNodeId": "authorization-gate",
+          "relationType": "constrains-policy-evaluation",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "source-provenance"
+      ],
+      "concurrencyPolicy": "serial",
+      "failurePolicy": "halt-dependent",
+      "provenancePolicy": "preserve-input-lineage",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "organism-coordinator",
+      "responsibility": "Assemble subsystems into one coordinated application context.",
+      "implementation": "coordinator",
+      "capabilities": [
+        "composition.resolve",
+        "state.coordinate"
+      ],
+      "inputs": [
+        "resolved-precedence",
+        "subsystem-contracts"
+      ],
+      "outputs": [
+        "assembled-context"
+      ],
+      "dependencies": [
+        "precedence-resolver"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "semantic-index",
+          "relationType": "provides-context-to",
+          "direction": "outbound"
+        },
+        {
+          "targetNodeId": "task-router",
+          "relationType": "coordinates-work",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "continuity"
+      ],
+      "concurrencyPolicy": "serial",
+      "failurePolicy": "halt-dependent",
+      "provenancePolicy": "preserve-input-lineage",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "semantic-index",
+      "responsibility": "Address entities, relations, records, and state through stable identifiers.",
+      "implementation": "service",
+      "capabilities": [
+        "index.read",
+        "relation.resolve"
+      ],
+      "inputs": [
+        "assembled-context",
+        "lookup-query"
+      ],
+      "outputs": [
+        "resolved-entities",
+        "relation-set"
+      ],
+      "dependencies": [
+        "organism-coordinator"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "continuity-carrier",
+          "relationType": "grounds-continuity",
+          "direction": "outbound"
+        },
+        {
+          "targetNodeId": "signal-parser",
+          "relationType": "provides-addressing-context",
+          "direction": "inbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "authorized-semantic-records"
+      ],
+      "concurrencyPolicy": "parallel",
+      "failurePolicy": "halt-dependent",
+      "provenancePolicy": "preserve-input-lineage",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "continuity-carrier",
+      "responsibility": "Carry identity, state, context, lineage, and provenance across transitions.",
+      "implementation": "service",
+      "capabilities": [
+        "continuity.read",
+        "continuity.reconcile"
+      ],
+      "inputs": [
+        "resolved-entities",
+        "prior-state",
+        "transition-context"
+      ],
+      "outputs": [
+        "continuity-snapshot",
+        "state-delta"
+      ],
+      "dependencies": [
+        "semantic-index"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "archive-reconciler",
+          "relationType": "provides-history-for",
+          "direction": "outbound"
+        },
+        {
+          "targetNodeId": "temporal-context",
+          "relationType": "provides-time-bearing-state",
+          "direction": "outbound"
+        },
+        {
+          "targetNodeId": "cross-modal-renderer",
+          "relationType": "provides-render-context",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "authorized-continuity"
+      ],
+      "concurrencyPolicy": "serial",
+      "failurePolicy": "manual-review",
+      "provenancePolicy": "preserve-input-lineage",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "source-retriever",
+      "responsibility": "Retrieve candidate source material within the caller's declared scope.",
+      "implementation": "agent",
+      "capabilities": [
+        "source.search",
+        "source.read"
+      ],
+      "inputs": [
+        "query",
+        "allowed-source-scope"
+      ],
+      "outputs": [
+        "source-records"
+      ],
+      "dependencies": [
+        "precedence-resolver"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "provenance-auditor",
+          "relationType": "submits-source-records-to",
+          "direction": "outbound"
+        },
+        {
+          "targetNodeId": "archive-reconciler",
+          "relationType": "supplies-recovered-records-to",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "source-provenance"
+      ],
+      "concurrencyPolicy": "parallel",
+      "failurePolicy": "continue-independent",
+      "provenancePolicy": "retain-source-identifiers-and-excerpts",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "provenance-auditor",
+      "responsibility": "Check source lineage, claim support, and contradiction markers.",
+      "implementation": "validator",
+      "capabilities": [
+        "provenance.verify",
+        "claim.audit"
+      ],
+      "inputs": [
+        "source-records",
+        "claims"
+      ],
+      "outputs": [
+        "provenance-report",
+        "unsupported-claims"
+      ],
+      "dependencies": [
+        "source-retriever"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "quality-validator",
+          "relationType": "provides-evidence-to",
+          "direction": "outbound"
+        },
+        {
+          "targetNodeId": "archive-reconciler",
+          "relationType": "supports-adjudication",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "evidence-records"
+      ],
+      "concurrencyPolicy": "parallel",
+      "failurePolicy": "manual-review",
+      "provenancePolicy": "retain-source-identifiers-and-contradictions",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "authorization-gate",
+      "responsibility": "Evaluate operation requests against permissions, scope, and approval state.",
+      "implementation": "validator",
+      "capabilities": [
+        "authorization.check",
+        "policy.enforce"
+      ],
+      "inputs": [
+        "operation-request",
+        "identity",
+        "policy-context",
+        "approval-state"
+      ],
+      "outputs": [
+        "allow-deny-decision",
+        "audit-reason"
+      ],
+      "dependencies": [
+        "precedence-resolver"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "tool-broker",
+          "relationType": "authorizes-or-blocks",
+          "direction": "outbound"
+        },
+        {
+          "targetNodeId": "task-router",
+          "relationType": "constrains-routing",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "policy"
+      ],
+      "concurrencyPolicy": "serial",
+      "failurePolicy": "halt-dependent",
+      "provenancePolicy": "record-decision-rationale",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "tool-broker",
+      "responsibility": "Broker registered tool calls after an authorization decision.",
+      "implementation": "coordinator",
+      "capabilities": [
+        "tool.route",
+        "tool.audit"
+      ],
+      "inputs": [
+        "tool-proposal",
+        "authorization-decision"
+      ],
+      "outputs": [
+        "tool-result",
+        "tool-event"
+      ],
+      "dependencies": [
+        "authorization-gate"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "task-worker",
+          "relationType": "serves-approved-work-to",
+          "direction": "outbound"
+        },
+        {
+          "targetNodeId": "resource-controller",
+          "relationType": "requests-bounded-resources",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "tool-audit"
+      ],
+      "concurrencyPolicy": "serial",
+      "failurePolicy": "manual-review",
+      "provenancePolicy": "record-input-decision-and-result",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "task-router",
+      "responsibility": "Route bounded work to suitable execution roles and return control to the coordinator.",
+      "implementation": "coordinator",
+      "capabilities": [
+        "task.route",
+        "task.plan"
+      ],
+      "inputs": [
+        "task",
+        "assembled-context",
+        "authorization-decision"
+      ],
+      "outputs": [
+        "work-orders",
+        "routing-record"
+      ],
+      "dependencies": [
+        "organism-coordinator",
+        "authorization-gate"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "task-worker",
+          "relationType": "assigns-bounded-work-to",
+          "direction": "outbound"
+        },
+        {
+          "targetNodeId": "interface-adapter",
+          "relationType": "receives-channel-intent-from",
+          "direction": "inbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "work-order"
+      ],
+      "concurrencyPolicy": "serial",
+      "failurePolicy": "halt-dependent",
+      "provenancePolicy": "preserve-task-and-source-lineage",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "task-worker",
+      "responsibility": "Execute a bounded task using only granted capabilities and scoped inputs.",
+      "implementation": "agent",
+      "capabilities": [
+        "task.execute-bounded"
+      ],
+      "inputs": [
+        "work-order",
+        "scoped-context",
+        "grants"
+      ],
+      "outputs": [
+        "task-result",
+        "task-events"
+      ],
+      "dependencies": [
+        "task-router",
+        "tool-broker"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "telemetry-observer",
+          "relationType": "emits-events-to",
+          "direction": "outbound"
+        },
+        {
+          "targetNodeId": "quality-validator",
+          "relationType": "submits-results-to",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task"
+      ],
+      "concurrencyPolicy": "parallel",
+      "failurePolicy": "continue-independent",
+      "provenancePolicy": "preserve-input-lineage-and-tool-receipts",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "archive-reconciler",
+      "responsibility": "Reconcile recovered history while preserving chronology, source class, contradictions, and supersession.",
+      "implementation": "agent",
+      "capabilities": [
+        "history.reconcile",
+        "history.supersede"
+      ],
+      "inputs": [
+        "continuity-snapshot",
+        "source-records",
+        "provenance-report"
+      ],
+      "outputs": [
+        "reconciled-history",
+        "unresolved-conflicts"
+      ],
+      "dependencies": [
+        "continuity-carrier",
+        "source-retriever",
+        "provenance-auditor"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "continuity-carrier",
+          "relationType": "returns-reconciled-state-to",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "authorized-archive"
+      ],
+      "concurrencyPolicy": "serial",
+      "failurePolicy": "manual-review",
+      "provenancePolicy": "preserve-chronology-and-contradictions",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "temporal-context",
+      "responsibility": "Retain relevant temporal coordinates instead of silently collapsing distinct time sources.",
+      "implementation": "service",
+      "capabilities": [
+        "time.context.read",
+        "time.context.reconcile"
+      ],
+      "inputs": [
+        "continuity-snapshot",
+        "time-sources"
+      ],
+      "outputs": [
+        "temporal-context",
+        "time-conflicts"
+      ],
+      "dependencies": [
+        "continuity-carrier"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "cross-modal-renderer",
+          "relationType": "provides-temporal-context-to",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "temporal-context"
+      ],
+      "concurrencyPolicy": "parallel",
+      "failurePolicy": "manual-review",
+      "provenancePolicy": "retain-time-source-and-offset",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "signal-parser",
+      "responsibility": "Parse structured and unstructured incoming signals into typed, reviewable input.",
+      "implementation": "sensor",
+      "capabilities": [
+        "input.parse",
+        "input.classify"
+      ],
+      "inputs": [
+        "incoming-signal",
+        "parse-contract"
+      ],
+      "outputs": [
+        "typed-input",
+        "parse-uncertainty"
+      ],
+      "dependencies": [
+        "semantic-index"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "source-retriever",
+          "relationType": "can-request-evidence-for",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task"
+      ],
+      "concurrencyPolicy": "parallel",
+      "failurePolicy": "continue-independent",
+      "provenancePolicy": "retain-original-input-and-parse-confidence",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "cross-modal-renderer",
+      "responsibility": "Render a supported result across suitable channels while preserving its underlying claim and uncertainty.",
+      "implementation": "service",
+      "capabilities": [
+        "render.text",
+        "render.symbols",
+        "render.channel-adapt"
+      ],
+      "inputs": [
+        "content",
+        "continuity-snapshot",
+        "temporal-context",
+        "channel-contract"
+      ],
+      "outputs": [
+        "rendered-result",
+        "rendering-metadata"
+      ],
+      "dependencies": [
+        "continuity-carrier",
+        "temporal-context"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "interface-adapter",
+          "relationType": "supplies-rendered-output-to",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task"
+      ],
+      "concurrencyPolicy": "parallel",
+      "failurePolicy": "continue-independent",
+      "provenancePolicy": "retain-claim-source-and-rendering-choice",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "interface-adapter",
+      "responsibility": "Translate user intent and application results across declared interfaces.",
+      "implementation": "service",
+      "capabilities": [
+        "interface.translate",
+        "interface.adapt"
+      ],
+      "inputs": [
+        "user-intent",
+        "rendered-result",
+        "interface-contract"
+      ],
+      "outputs": [
+        "typed-intent",
+        "channel-response"
+      ],
+      "dependencies": [
+        "cross-modal-renderer"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "task-router",
+          "relationType": "submits-typed-intent-to",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task"
+      ],
+      "concurrencyPolicy": "parallel",
+      "failurePolicy": "continue-independent",
+      "provenancePolicy": "preserve-intent-and-response-linkage",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "telemetry-observer",
+      "responsibility": "Observe execution signals and produce auditable runtime-health evidence.",
+      "implementation": "sensor",
+      "capabilities": [
+        "telemetry.observe",
+        "runtime.health.report"
+      ],
+      "inputs": [
+        "task-events",
+        "heartbeat-source"
+      ],
+      "outputs": [
+        "telemetry-record",
+        "health-evidence"
+      ],
+      "dependencies": [
+        "task-worker"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "quality-validator",
+          "relationType": "provides-runtime-evidence-to",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "telemetry"
+      ],
+      "concurrencyPolicy": "parallel",
+      "failurePolicy": "continue-independent",
+      "provenancePolicy": "timestamp-and-source-observations",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "quality-validator",
+      "responsibility": "Validate task results against declared acceptance criteria and available evidence.",
+      "implementation": "validator",
+      "capabilities": [
+        "quality.check",
+        "contract.validate"
+      ],
+      "inputs": [
+        "task-result",
+        "provenance-report",
+        "health-evidence",
+        "acceptance-criteria"
+      ],
+      "outputs": [
+        "validation-result",
+        "defect-list"
+      ],
+      "dependencies": [
+        "task-worker",
+        "provenance-auditor"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "release-verifier",
+          "relationType": "provides-validated-artifact-to",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "evidence-records"
+      ],
+      "concurrencyPolicy": "parallel",
+      "failurePolicy": "manual-review",
+      "provenancePolicy": "link-verdicts-to-evidence",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "release-verifier",
+      "responsibility": "Verify release evidence, required checks, and declared readiness before release.",
+      "implementation": "validator",
+      "capabilities": [
+        "release.verify",
+        "release.gate"
+      ],
+      "inputs": [
+        "validation-result",
+        "release-checklist",
+        "build-evidence"
+      ],
+      "outputs": [
+        "release-verdict",
+        "release-blockers"
+      ],
+      "dependencies": [
+        "quality-validator"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "organism-coordinator",
+          "relationType": "returns-release-state-to",
+          "direction": "outbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "release-evidence"
+      ],
+      "concurrencyPolicy": "serial",
+      "failurePolicy": "halt-dependent",
+      "provenancePolicy": "retain-checks-and-verdict-lineage",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    },
+    {
+      "nodeId": "resource-controller",
+      "responsibility": "Apply resource bounds to an already authorized operation.",
+      "implementation": "resource-controller",
+      "capabilities": [
+        "resource.budget.enforce",
+        "resource.status.read"
+      ],
+      "inputs": [
+        "authorized-request",
+        "resource-budget"
+      ],
+      "outputs": [
+        "resource-grant",
+        "resource-status"
+      ],
+      "dependencies": [
+        "authorization-gate"
+      ],
+      "relationships": [
+        {
+          "targetNodeId": "tool-broker",
+          "relationType": "reports-bounded-resource-state-to",
+          "direction": "inbound"
+        }
+      ],
+      "memoryScopes": [
+        "task",
+        "resource-budget"
+      ],
+      "concurrencyPolicy": "exclusive",
+      "failurePolicy": "halt-dependent",
+      "provenancePolicy": "record-budget-and-enforcement-outcome",
+      "metadata": {
+        "sourceClass": "public-capability-abstraction",
+        "mountState": "unverified",
+        "authority": "non-authorizing"
+      }
+    }
+  ]
+}

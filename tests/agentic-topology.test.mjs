@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { createAgenticTopology, createTopologyNode, isTopologyNode } from '../src/agentic-topology.mjs';
 
 test('topology nodes preserve stable identity, role, coordinates, and policy', () => {
@@ -70,4 +71,36 @@ test('registry revalidates objects that claim the topology schema', () => {
     responsibility:'Bypass validation',
     dependencies:'not-an-array'
   }));
+});
+
+test('checked-in public topology is populated and every node and relationship resolves', async () => {
+  const fixture = JSON.parse(await readFile(new URL('../specs/agentic-topology.v1.json', import.meta.url), 'utf8'));
+  assert.equal(fixture.schema, 'navel-gazer.agentic-topology.v1');
+  assert.equal(fixture.version, '1.0.0');
+  assert.ok(fixture.provenance?.sourceId, 'public topology must identify its source class');
+  assert.ok(fixture.provenance?.sourceVersion, 'public topology must record source version');
+  assert.ok(Array.isArray(fixture.nodes) && fixture.nodes.length >= 15, 'canonical public map must be populated');
+
+  const topology = createAgenticTopology(fixture);
+  const verdict = topology.validate();
+  assert.equal(verdict.valid, true, JSON.stringify(verdict.errors));
+  assert.equal(verdict.nodeCount, fixture.nodes.length);
+  assert.equal(new Set(fixture.nodes.map(node => node.nodeId)).size, fixture.nodes.length, 'node IDs must be unique');
+
+  const knownIds = new Set(fixture.nodes.map(node => node.nodeId));
+  for (const node of fixture.nodes) {
+    assert.ok(knownIds.has(node.nodeId), 'registered node missing: ' + node.nodeId);
+    for (const dependency of node.dependencies ?? []) {
+      assert.ok(knownIds.has(dependency), node.nodeId + ' has missing dependency ' + dependency);
+    }
+    for (const relationship of node.relationships ?? []) {
+      assert.ok(knownIds.has(relationship.targetNodeId), node.nodeId + ' has missing relationship target ' + relationship.targetNodeId);
+    }
+  }
+});
+
+test('public topology contains no private crew names or internal protocols', async () => {
+  const content = await readFile(new URL('../specs/agentic-topology.v1.json', import.meta.url), 'utf8');
+  const privateTerm = /dreamcorp|siren|nyx|amærah|amaerah|jelani|imani(?:\\s+vale)?|phidelity|omniglyph|asecii|raptor/i;
+  assert.equal(privateTerm.test(content), false, 'public topology must contain only neutral capability vocabulary');
 });
