@@ -2,11 +2,11 @@
 
 ## Status
 
-Initial public contract. This specification intentionally does not enumerate the canonical product nodes. The authoritative map must be supplied and versioned separately; no historical partial list is treated as complete.
+Initial public contract. The reviewed public capability fixture is `specs/agentic-topology.v1.json`, using `navel-gazer.agentic-topology.v1` and version `1.0.0`. It is a neutral, public-facing capability map, not a list of private agents or proof that local processes are running.
 
 ## Purpose
 
-Represent the canonical map as an extensible, machine-readable topology. Node identity and relationships are stable across model substitutions. A node may be implemented by a reasoning agent, deterministic service, sensor, validator, coordinator, or resource controller.
+Represent the public capability map as an extensible, machine-readable topology. Node identity and relationships are stable across model substitutions. A node may be implemented by a reasoning agent, deterministic service, sensor, validator, coordinator, or resource controller.
 
 ## Node contract
 
@@ -35,7 +35,13 @@ The initial schema is `navel-gazer.topology-node.v1` and includes:
 6. A node's memory scope and capabilities must be enforced by the runtime, not trusted because they appear in model output or node metadata.
 7. Model output is untrusted input. It cannot alter topology, grant permissions, or approve consequential actions.
 8. Preserve source-map identity and provenance during import. Never infer missing nodes from an incomplete list.
-9. Public IDs and descriptions must not disclose private Dreamguard terminology, proprietary agents, or private implementation details.
+9. Public IDs and descriptions must not disclose private terminology, person-specific identities, or implementation details.
+
+## Public source and boundary
+
+The fixture carries a source identifier, source version, preparation date, method, and proposed-review status. It is a normalized public capability projection. Its identifiers are intentionally provider-neutral and non-authorizing. The private crosswalk and private crew source addresses remain outside this repository.
+
+The fixture must not be interpreted as asserting that every capability is shipped, enabled, authorized, connected, or process-live. Runtime status is verified independently.
 
 ## Parallelism
 
@@ -47,4 +53,4 @@ Every imported canonical map must carry a source identifier, version, and proven
 
 ## Current implementation
 
-`src/agentic-topology.mjs` validates node contracts, uniqueness, dependency references, relationship targets, and dependency cycles. It is a registry and validator, not yet a parallel execution scheduler and not yet populated with the canonical map.
+`src/agentic-topology.mjs` validates node contracts, uniqueness, dependency references, relationship targets, and dependency cycles. The checked-in fixture populates that contract. It remains a registry and validator, not by itself a claim of live workers or runtime connectivity.
