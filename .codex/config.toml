@@ -1,0 +1,9 @@
+# Project-scoped MCP servers for visual design and browser QA.
+# Codex loads project config only after the user trusts this repository.
+
+[mcp_servers.figma]
+url = "https://mcp.figma.com/mcp"
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["-y", "@playwright/mcp@0.0.83", "--isolated", "--headless"]
