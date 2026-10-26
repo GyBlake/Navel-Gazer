@@ -25,7 +25,7 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "electron": "44.7.0",
-    "electron-builder": "26.17.0"
+    "electron-builder": "26.18.0"
   },
   "main": "desktop/main.cjs",
   "build": {
